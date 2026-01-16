@@ -7,6 +7,12 @@ import { handleKeypress } from "./lib/keybindings.js";
 import { findKabanRoot, getKabanPaths, initializeProject } from "./lib/project.js";
 import type { AppState } from "./lib/types.js";
 
+const POLL_INTERVAL_MS = 500;
+
+type LibsqlClient = {
+  execute: (sql: string) => Promise<{ rows: unknown[][] }>;
+};
+
 async function main() {
   const renderer = await createCliRenderer({
     exitOnCtrlC: true,
@@ -58,6 +64,33 @@ async function main() {
   };
 
   await refreshBoard(state);
+
+  // Poll for database changes (CLI modifications)
+  let lastDataVersion: number | null = null;
+  const client = (db as unknown as { $client: LibsqlClient }).$client;
+
+  const checkForChanges = async () => {
+    if (state.activeModal !== "none") return; // Don't refresh during modal
+
+    try {
+      const result = await client.execute("PRAGMA data_version");
+      const currentVersion = result.rows[0]?.[0] as number;
+
+      if (lastDataVersion !== null && currentVersion !== lastDataVersion) {
+        await refreshBoard(state);
+      }
+      lastDataVersion = currentVersion;
+    } catch {
+      // DB might be locked momentarily, ignore
+    }
+  };
+
+  const pollInterval = setInterval(checkForChanges, POLL_INTERVAL_MS);
+
+  const cleanup = () => clearInterval(pollInterval);
+  process.on("exit", cleanup);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
 
   renderer.keyInput.on("keypress", (key: { name: string; shift: boolean }) => {
     handleKeypress(state, key);
