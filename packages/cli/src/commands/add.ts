@@ -8,6 +8,7 @@ export const addCommand = new Command("add")
   .argument("<title>", "Task title")
   .option("-c, --column <column>", "Column to add task to")
   .option("-a, --agent <agent>", "Agent creating the task")
+  .option("-D, --description <text>", "Task description")
   .option("-d, --depends-on <ids>", "Comma-separated task IDs this depends on")
   .option("-j, --json", "Output as JSON")
   .action(async (title, options) => {
@@ -22,6 +23,7 @@ export const addCommand = new Command("add")
 
       const task = await taskService.addTask({
         title,
+        description: options.description,
         columnId,
         agent,
         dependsOn,
