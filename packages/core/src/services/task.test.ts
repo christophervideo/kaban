@@ -152,4 +152,28 @@ describe("TaskService", () => {
       expect(moved.completedAt).not.toBeNull();
     });
   });
+
+  describe("optimistic locking", () => {
+    test("rejects update with stale version", () => {
+      const task = taskService.addTask({ title: "Original" });
+
+      taskService.updateTask(task.id, { title: "Updated by other" });
+
+      expect(() =>
+        taskService.updateTask(task.id, { title: "My update" }, task.version),
+      ).toThrow(/modified by another agent/);
+    });
+
+    test("succeeds with correct version", () => {
+      const task = taskService.addTask({ title: "Original" });
+      const updated = taskService.updateTask(
+        task.id,
+        { title: "Updated" },
+        task.version,
+      );
+
+      expect(updated.title).toBe("Updated");
+      expect(updated.version).toBe(2);
+    });
+  });
 });

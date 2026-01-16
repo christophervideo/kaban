@@ -26,6 +26,14 @@ export interface MoveTaskOptions {
   force?: boolean;
 }
 
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  assignedTo?: string | null;
+  files?: string[];
+  labels?: string[];
+}
+
 export class TaskService {
   constructor(
     private db: DB,
@@ -163,6 +171,55 @@ export class TaskService {
         startedAt: columnId === "in_progress" && !task.startedAt ? now : task.startedAt,
       })
       .where(eq(tasks.id, id))
+      .run();
+
+    return this.getTask(id)!;
+  }
+
+  updateTask(id: string, input: UpdateTaskInput, expectedVersion?: number): Task {
+    const task = this.getTask(id);
+    if (!task) {
+      throw new KabanError(`Task '${id}' not found`, ExitCode.NOT_FOUND);
+    }
+
+    if (expectedVersion !== undefined && task.version !== expectedVersion) {
+      throw new KabanError(
+        `Task modified by another agent, re-read required. Current version: ${task.version}`,
+        ExitCode.CONFLICT,
+      );
+    }
+
+    const updates: Record<string, unknown> = {
+      version: task.version + 1,
+      updatedAt: new Date(),
+    };
+
+    if (input.title !== undefined) {
+      updates.title = validateTitle(input.title);
+    }
+    if (input.description !== undefined) {
+      updates.description = input.description;
+    }
+    if (input.assignedTo !== undefined) {
+      updates.assignedTo = input.assignedTo
+        ? validateAgentName(input.assignedTo)
+        : null;
+    }
+    if (input.files !== undefined) {
+      updates.files = input.files;
+    }
+    if (input.labels !== undefined) {
+      updates.labels = input.labels;
+    }
+
+    this.db
+      .update(tasks)
+      .set(updates)
+      .where(
+        expectedVersion !== undefined
+          ? and(eq(tasks.id, id), eq(tasks.version, expectedVersion))
+          : eq(tasks.id, id),
+      )
       .run();
 
     return this.getTask(id)!;
