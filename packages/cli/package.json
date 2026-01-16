@@ -1,0 +1,20 @@
+{
+  "name": "@kaban/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "kaban": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kaban/core": "workspace:*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
