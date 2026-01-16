@@ -83,11 +83,18 @@ export async function refreshBoard(state: AppState): Promise<void> {
     columnHeader.add(columnTitle);
     columnPanel.add(columnHeader);
 
+    const taskContainer = new BoxRenderable(renderer, {
+      id: `task-container-${column.id}`,
+      width: "100%",
+      flexGrow: 1,
+      flexDirection: "column",
+    });
+
     if (columnTasks.length > 0) {
       const taskSelect = new SelectRenderable(renderer, {
         id: `tasks-${column.id}`,
         width: "100%",
-        height: Math.min(columnTasks.length + 2, 20),
+        height: "100%",
         backgroundColor: COLORS.panel,
         textColor: COLORS.text,
         options: columnTasks.map((task) => ({
@@ -106,15 +113,17 @@ export async function refreshBoard(state: AppState): Promise<void> {
         taskSelect.focus();
       }
 
-      columnPanel.add(taskSelect);
+      taskContainer.add(taskSelect);
     } else {
       const emptyText = new TextRenderable(renderer, {
         id: `empty-${column.id}`,
         content: "(empty)",
         fg: COLORS.textDim,
       });
-      columnPanel.add(emptyText);
+      taskContainer.add(emptyText);
     }
+
+    columnPanel.add(taskContainer);
 
     state.columnPanels.push(columnPanel);
     columnsContainer.add(columnPanel);
