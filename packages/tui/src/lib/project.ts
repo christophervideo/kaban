@@ -17,7 +17,7 @@ export function getKabanPaths(root: string) {
   const kabanDir = resolve(root, ".kaban");
   return {
     kabanDir,
-    dbPath: resolve(kabanDir, "kaban.db"),
+    dbPath: resolve(kabanDir, "board.db"),
     configPath: resolve(kabanDir, "config.json"),
   };
 }
