@@ -11,11 +11,11 @@
 
 <p align="center">
   <a href="#features">Features</a> •
-  <a href="#quick-start">Quick Start</a> •
+  <a href="#installation">Installation</a> •
   <a href="#mcp-integration">MCP Integration</a> •
   <a href="#cli-usage">CLI</a> •
   <a href="#tui-usage">TUI</a> •
-  <a href="#configuration">Config</a>
+  <a href="#ai-code-editors">AI Editors</a>
 </p>
 
 ---
@@ -26,40 +26,63 @@ Kaban is a terminal-based Kanban board designed for **AI code agents** and devel
 
 **Why Kaban?**
 
-- **MCP Native** — First-class integration with Claude Desktop and MCP-compatible AI agents
-- **Terminal First** — Beautiful TUI + powerful CLI, no browser needed
-- **Human + AI** — Track who created each task (you, Claude, or other agents)
-- **Zero Config** — SQLite-based, portable, works offline
+- **Manage Todos** — Track tasks with a proper Kanban board
+- **Assign to Agents** — Assign tasks to Claude, GPT, or any AI agent
+- **Single App** — No servers, no cloud. One SQLite file. Works offline
+- **TUI + CLI + MCP** — Interactive UI for humans, CLI for scripts, MCP for AI
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **MCP Server** | AI agents can read, create, and manage tasks autonomously |
-| ⌨️ **Interactive TUI** | Vim-style navigation, keyboard-driven workflow |
-| 🔧 **Powerful CLI** | Scriptable commands for automation |
-| 📊 **WIP Limits** | Built-in Kanban best practices |
-| 👥 **Agent Tracking** | See who (human or AI) owns each task |
-| 📦 **Portable** | Single SQLite file, no server required |
+| **MCP Server** | AI agents can read, create, and manage tasks autonomously |
+| **Interactive TUI** | Vim-style navigation, keyboard-driven workflow |
+| **Powerful CLI** | Scriptable commands for automation |
+| **WIP Limits** | Built-in Kanban best practices |
+| **Agent Tracking** | See who (human or AI) owns each task |
+| **Portable** | Single SQLite file, no server required |
 
-## Quick Start
+## Installation
+
+### npx / bunx (Zero Install)
 
 ```bash
-# Clone and install
-git clone https://github.com/beshkenadze/kaban
-cd kaban
-bun install && bun run build
+# Try without installing
+npx @kaban-board/cli init --name "My Project"
+npx @kaban-board/cli tui
 
-# Initialize in your project
-cd /path/to/your/project
+# Or with bun
+bunx @kaban-board/cli tui
+```
+
+### npm (Global Install)
+
+```bash
+npm install -g @kaban-board/cli
 kaban init --name "My Project"
-
-# Add a task
-kaban add "Implement feature X" --agent claude
-
-# Launch the TUI
 kaban tui
 ```
+
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap beshkenadze/tap
+brew install kaban
+kaban tui
+```
+
+### From Source
+
+```bash
+git clone https://github.com/beshkenadze/kaban
+cd kaban && bun install && bun run build
+task install
+```
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+ or [Bun](https://bun.sh/) v1.0+
+- [Task](https://taskfile.dev/) (optional, for development)
 
 ## Packages
 
@@ -67,49 +90,9 @@ Kaban is a monorepo with three packages:
 
 | Package | Description |
 |---------|-------------|
-| `@kaban/core` | Database logic, services, and schemas |
-| `@kaban/cli` | CLI commands, TUI launcher, MCP server |
-| `@kaban/tui` | Interactive Terminal User Interface |
-
-## Installation
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) v1.0+
-- [Task](https://taskfile.dev/) (optional)
-
-### With Task (Recommended)
-
-```bash
-git clone https://github.com/beshkenadze/kaban
-cd kaban
-task install
-```
-
-### Manual
-
-```bash
-git clone https://github.com/beshkenadze/kaban
-cd kaban
-bun install
-bun run build
-
-# Option 1: Add alias
-alias kaban="bun run $(pwd)/packages/cli/src/index.ts"
-
-# Option 2: Link globally
-ln -s $(pwd)/packages/cli/src/index.ts /usr/local/bin/kaban
-```
-
-### Task Commands
-
-| Command | Description |
-|---------|-------------|
-| `task install` | Build and install to /usr/local/bin |
-| `task uninstall` | Remove from system |
-| `task update` | Rebuild and reinstall |
-| `task build` | Build all packages |
-| `task dev:tui` | Run TUI in dev mode |
+| `@kaban-board/core` | Database logic, services, and schemas |
+| `@kaban-board/cli` | CLI commands, TUI launcher, MCP server |
+| `@kaban-board/tui` | Interactive Terminal User Interface |
 
 ## MCP Integration
 
@@ -206,8 +189,8 @@ kaban tui
 
 | Key | Action |
 |-----|--------|
-| `←` `→` / `h` `l` | Navigate columns |
-| `↑` `↓` / `j` `k` | Navigate tasks |
+| `<` `>` / `h` `l` | Navigate columns |
+| `^` `v` / `j` `k` | Navigate tasks |
 | `Enter` | View task details |
 | `a` | Add new task |
 | `e` | Edit task |
@@ -216,6 +199,57 @@ kaban tui
 | `d` | Delete task |
 | `?` | Show help |
 | `q` | Quit |
+
+## AI Code Editors
+
+Install Kaban as a skill/plugin or add the MCP server directly:
+
+### Claude Code
+
+```bash
+# Install plugin
+/plugin install kaban@github.com/beshkenadze/kaban/marketplace/kaban-workflow
+
+# Or add MCP to .mcp.json
+{
+  "kaban": {
+    "command": "kaban",
+    "args": ["mcp"]
+  }
+}
+```
+
+### OpenCode
+
+```jsonc
+// Add plugin to opencode.jsonc
+{
+  "plugin": ["kaban-workflow"]
+}
+
+// Or add MCP server
+opencode mcp add
+```
+
+### Codex CLI
+
+```bash
+# Install skill from GitHub
+codex skill install --url github.com/beshkenadze/kaban/marketplace/kaban-workflow
+
+# Or add MCP server
+codex mcp add kaban -- kaban mcp
+```
+
+### Gemini CLI
+
+```bash
+# Install extension
+gemini extensions install https://github.com/beshkenadze/kaban
+
+# Or add MCP to settings.json
+{ "mcpServers": { "kaban": { "command": "kaban", "args": ["mcp"] }}}
+```
 
 ## Configuration
 
@@ -260,4 +294,4 @@ bun run test
 
 ## License
 
-[MIT](LICENSE) © Kaban Contributors
+[MIT](LICENSE)
