@@ -1,3 +1,5 @@
+export const LOGO = "🐗";
+
 export const COLORS = {
   bg: "#0d1117",
   panel: "#161b22",
@@ -15,5 +17,16 @@ export const COLORS = {
   inputBg: "#21262d",
   cursor: "#79c0ff",
 } as const;
+
+export const STATUS_COLORS: Record<string, string> = {
+  backlog: COLORS.textDim,
+  todo: COLORS.warning,
+  "in-progress": COLORS.accent,
+  done: COLORS.success,
+} as const;
+
+export function getStatusColor(columnId: string): string {
+  return STATUS_COLORS[columnId] ?? COLORS.textMuted;
+}
 
 export type Theme = typeof COLORS;

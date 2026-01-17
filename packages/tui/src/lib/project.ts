@@ -35,7 +35,7 @@ export async function initializeProject(
   };
   writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-  const db = createDb(`file:${dbPath}`);
+  const db = createDb(dbPath);
   await initializeSchema(db);
   const boardService = new BoardService(db);
   await boardService.initializeBoard(config);

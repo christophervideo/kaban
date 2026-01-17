@@ -6,6 +6,7 @@ import { createModalOverlay } from "../overlay.js";
 const SHORTCUTS = [
   ["<-/-> h/l", "Switch column"],
   ["up/dn j/k", "Navigate tasks"],
+  ["Enter", "View task details"],
   ["a", "Add new task"],
   ["m", "Move task (change status)"],
   ["u", "Assign user to task"],
@@ -20,7 +21,7 @@ export function showHelpModal(state: AppState): void {
   const { overlay, dialog } = createModalOverlay(renderer, {
     id: "help-dialog",
     width: 45,
-    height: 16,
+    height: 17,
     padding: 2,
   });
 

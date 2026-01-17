@@ -33,7 +33,7 @@ async function main() {
     taskService = new TaskService(db, boardService);
   } else {
     const { dbPath } = getKabanPaths(projectRoot);
-    db = createDb(`file:${dbPath}`);
+    db = createDb(dbPath);
     boardService = new BoardService(db);
     taskService = new TaskService(db, boardService);
   }
@@ -61,6 +61,10 @@ async function main() {
     taskInput: null,
     buttonRow: null,
     onModalConfirm: null,
+    viewTaskState: null,
+    editTaskState: null,
+    viewTaskRuntime: null,
+    editTaskRuntime: null,
   };
 
   await refreshBoard(state);

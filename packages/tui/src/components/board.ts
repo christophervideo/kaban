@@ -1,5 +1,5 @@
-import { BoxRenderable, SelectRenderable, TextRenderable } from "@opentui/core";
-import { COLORS } from "../lib/theme.js";
+import { BoxRenderable, fg, SelectRenderable, TextRenderable, t } from "@opentui/core";
+import { COLORS, LOGO } from "../lib/theme.js";
 import type { AppState } from "../lib/types.js";
 import { truncate } from "../lib/utils.js";
 
@@ -36,8 +36,7 @@ export async function refreshBoard(state: AppState): Promise<void> {
 
   const headerText = new TextRenderable(renderer, {
     id: "header-text",
-    content: `${state.boardName}`,
-    fg: COLORS.accent,
+    content: t`${fg(COLORS.warning)(LOGO)} ${fg(COLORS.accent)(state.boardName)}`,
   });
   header.add(headerText);
   mainContainer.add(header);

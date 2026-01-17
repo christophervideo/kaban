@@ -1,179 +1,123 @@
-# Kaban
+<p align="center">
+  <img src="docs/assets/icon.png" alt="Kaban" width="120" height="120">
+</p>
 
-Kaban is a terminal-based Kanban board specifically designed for AI code agents and developers. It provides a structured way to manage tasks, track progress, and coordinate between human users and AI agents in a terminal environment.
+<h1 align="center">Kaban</h1>
 
-Kaban is organized as a monorepo consisting of the following packages:
-- **@kaban/core**: Core library containing database logic, services, and schemas.
-- **@kaban/cli**: Unified CLI with commands for task management, TUI launcher, and MCP server.
-- **@kaban/tui**: Interactive Terminal User Interface for visual board management.
+<p align="center">
+  <strong>Kanban for AI Agents</strong><br>
+  Track and coordinate tasks between humans and AI in the terminal
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#mcp-integration">MCP Integration</a> •
+  <a href="#cli-usage">CLI</a> •
+  <a href="#tui-usage">TUI</a> •
+  <a href="#configuration">Config</a>
+</p>
+
+---
+
+## What is Kaban?
+
+Kaban is a terminal-based Kanban board designed for **AI code agents** and developers. It provides a structured way to manage tasks, track progress, and coordinate between human users and AI agents.
+
+**Why Kaban?**
+
+- **MCP Native** — First-class integration with Claude Desktop and MCP-compatible AI agents
+- **Terminal First** — Beautiful TUI + powerful CLI, no browser needed
+- **Human + AI** — Track who created each task (you, Claude, or other agents)
+- **Zero Config** — SQLite-based, portable, works offline
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **MCP Server** | AI agents can read, create, and manage tasks autonomously |
+| ⌨️ **Interactive TUI** | Vim-style navigation, keyboard-driven workflow |
+| 🔧 **Powerful CLI** | Scriptable commands for automation |
+| 📊 **WIP Limits** | Built-in Kanban best practices |
+| 👥 **Agent Tracking** | See who (human or AI) owns each task |
+| 📦 **Portable** | Single SQLite file, no server required |
+
+## Quick Start
+
+```bash
+# Clone and install
+git clone https://github.com/beshkenadze/kaban
+cd kaban
+bun install && bun run build
+
+# Initialize in your project
+cd /path/to/your/project
+kaban init --name "My Project"
+
+# Add a task
+kaban add "Implement feature X" --agent claude
+
+# Launch the TUI
+kaban tui
+```
+
+## Packages
+
+Kaban is a monorepo with three packages:
+
+| Package | Description |
+|---------|-------------|
+| `@kaban/core` | Database logic, services, and schemas |
+| `@kaban/cli` | CLI commands, TUI launcher, MCP server |
+| `@kaban/tui` | Interactive Terminal User Interface |
 
 ## Installation
 
 ### Prerequisites
-- [Bun](https://bun.sh/) runtime
-- [Task](https://taskfile.dev/) (optional, for easy install/update/uninstall)
 
-### Quick Install
+- [Bun](https://bun.sh/) v1.0+
+- [Task](https://taskfile.dev/) (optional)
+
+### With Task (Recommended)
+
 ```bash
-git clone <repo-url>
-cd KabanProject
+git clone https://github.com/beshkenadze/kaban
+cd kaban
 task install
 ```
 
-This creates a wrapper script at `/usr/local/bin/kaban` that invokes `bun run` with the CLI entry point. The project directory must remain in place.
+### Manual
 
-### Manual Setup
 ```bash
+git clone https://github.com/beshkenadze/kaban
+cd kaban
 bun install
 bun run build
-# Run directly without installing
-bun run packages/cli/src/index.ts --help
+
+# Option 1: Add alias
+alias kaban="bun run $(pwd)/packages/cli/src/index.ts"
+
+# Option 2: Link globally
+ln -s $(pwd)/packages/cli/src/index.ts /usr/local/bin/kaban
 ```
 
 ### Task Commands
 
 | Command | Description |
-|:---|:---|
-| `task install` | Build and install wrapper script to /usr/local/bin |
-| `task uninstall` | Remove kaban from system |
+|---------|-------------|
+| `task install` | Build and install to /usr/local/bin |
+| `task uninstall` | Remove from system |
 | `task update` | Rebuild and reinstall |
 | `task build` | Build all packages |
-| `task clean` | Remove build artifacts |
-| `task dev:cli` | Run CLI in development mode |
-| `task dev:tui` | Run TUI in development mode |
-
-Custom install directory:
-```bash
-INSTALL_DIR=~/.local/bin task install
-```
-
-## CLI Usage
-
-The Kaban CLI allows you to interact with your board directly from the terminal.
-
-### Commands
-
-| Command | Description |
-|:---|:---|
-| `kaban init` | Initialize a new board in the current directory. |
-| `kaban add` | Add a new task to the board. |
-| `kaban list` | List tasks with optional filters. |
-| `kaban move` | Move a task to a different column. |
-| `kaban done` | Mark a task as completed (moves to terminal column). |
-| `kaban status` | Show a summary of the board status. |
-| `kaban schema` | Output JSON schemas for validation. |
-| `kaban tui` | Start interactive Terminal UI. |
-| `kaban mcp` | Start MCP server for AI agent integration. |
-
-### Command Options
-
-#### `kaban init`
-Initialize a board.
-- `-n, --name <name>`: Board name (default: "Kaban Board").
-
-Example:
-```bash
-kaban init --name "My Project Board"
-```
-
-#### `kaban add <title>`
-Add a new task.
-- `-c, --column <column>`: Target column ID.
-- `-a, --agent <agent>`: Agent name creating the task.
-- `-D, --description <text>`: Task description.
-- `-d, --depends-on <ids>`: Comma-separated task IDs this task depends on.
-- `-j, --json`: Output result as JSON.
-
-Example:
-```bash
-kaban add "Implement login feature" -c todo -a "claude" -D "Add OAuth2 login flow"
-```
-
-#### `kaban list`
-List tasks.
-- `-c, --column <column>`: Filter by column ID.
-- `-a, --agent <agent>`: Filter by creator agent.
-- `-u, --assignee <agent>`: Filter by assigned agent.
-- `-b, --blocked`: Show only blocked tasks.
-- `-s, --sort <field>`: Sort by `name`, `date`, or `updated`.
-- `-r, --reverse`: Reverse sort order.
-- `-j, --json`: Output result as JSON.
-
-Examples:
-```bash
-kaban list --column in-progress
-kaban list --assignee claude --sort date --reverse
-kaban list --sort name
-```
-
-#### `kaban move <id> [column]`
-Move a task. Supports partial IDs.
-- `-n, --next`: Move task to the next column in sequence.
-- `-f, --force`: Force move even if WIP limit is exceeded.
-- `-j, --json`: Output result as JSON.
-
-Example:
-```bash
-kaban move a1b2c3d4 -n
-```
-
-#### `kaban done <id>`
-Mark task as done. Moves the task to the configured terminal column.
-- `-j, --json`: Output result as JSON.
-
-Example:
-```bash
-kaban done a1b2c3d4
-```
-
-## TUI Usage
-
-The TUI provides an interactive, visual representation of the Kanban board.
-
-```bash
-kaban tui
-```
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|:---|:---|
-| Arrow keys / `h`, `j`, `k`, `l` | Navigate between columns and tasks |
-| `a` | Add a new task |
-| `m` | Move selected task to a different column |
-| `u` | Assign user/agent to task |
-| `d` | Delete selected task |
-| `?` | Show help modal |
-| `q` | Quit |
+| `task dev:tui` | Run TUI in dev mode |
 
 ## MCP Integration
 
-Kaban includes an MCP server, allowing AI agents to perceive and manage the Kanban board.
+Connect your AI coding assistant to Kaban via [Model Context Protocol](https://modelcontextprotocol.io/).
 
-### Tools
+### Claude Desktop Setup
 
-| Tool | Description |
-|:---|:---|
-| `kaban_init` | Initialize board (name, path optional). |
-| `kaban_add_task` | Add task (title, columnId, agent, dependsOn, etc.). |
-| `kaban_get_task` | Get detailed information about a task by ID. |
-| `kaban_list_tasks` | List tasks with filters (columnId, agent, assignee, blocked). |
-| `kaban_move_task` | Move task to a specific column. |
-| `kaban_update_task` | Update task properties (title, description, labels, etc.). |
-| `kaban_delete_task` | Remove a task from the board. |
-| `kaban_complete_task` | Mark task as done (partial ID supported). |
-| `kaban_status` | Get board summary and column statistics. |
-
-### Resources
-
-- `kaban://board/status`: Board status with task counts.
-- `kaban://board/columns`: List of available columns.
-- `kaban://tasks/{columnId}`: List of tasks in a specific column.
-- `kaban://task/{id}`: Full details of a single task.
-
-### Configuration for Claude Desktop
-
-Add the following to your `claude_desktop_config.json`:
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -189,36 +133,131 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
-Or run directly without installing:
+### MCP Tools
 
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "bun",
-      "args": ["run", "/path/to/KabanProject/packages/cli/src/index.ts", "mcp"],
-      "env": {
-        "KABAN_PATH": "/path/to/your/project"
-      }
-    }
-  }
-}
+| Tool | Description |
+|------|-------------|
+| `kaban_init` | Initialize a new board |
+| `kaban_add_task` | Add a task |
+| `kaban_get_task` | Get task details |
+| `kaban_list_tasks` | List tasks with filters |
+| `kaban_move_task` | Move task to column |
+| `kaban_update_task` | Update task properties |
+| `kaban_delete_task` | Delete a task |
+| `kaban_complete_task` | Mark task as done |
+| `kaban_status` | Get board summary |
+
+### MCP Resources
+
+| Resource | Description |
+|----------|-------------|
+| `kaban://board/status` | Board status with counts |
+| `kaban://board/columns` | Available columns |
+| `kaban://tasks/{columnId}` | Tasks in a column |
+| `kaban://task/{id}` | Single task details |
+
+## CLI Usage
+
+```bash
+kaban <command> [options]
 ```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `kaban init` | Initialize a board |
+| `kaban add <title>` | Add a task |
+| `kaban list` | List tasks |
+| `kaban move <id> [column]` | Move a task |
+| `kaban done <id>` | Mark task complete |
+| `kaban status` | Show board summary |
+| `kaban tui` | Launch interactive UI |
+| `kaban mcp` | Start MCP server |
+
+### Examples
+
+```bash
+# Initialize with custom name
+kaban init --name "Sprint 1"
+
+# Add task with metadata
+kaban add "Fix auth bug" -c todo -a claude -D "OAuth2 flow broken"
+
+# List tasks in a column
+kaban list --column in-progress
+
+# Move task to next column
+kaban move abc123 --next
+
+# Mark complete
+kaban done abc123
+```
+
+## TUI Usage
+
+Launch the interactive terminal UI:
+
+```bash
+kaban tui
+```
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `←` `→` / `h` `l` | Navigate columns |
+| `↑` `↓` / `j` `k` | Navigate tasks |
+| `Enter` | View task details |
+| `a` | Add new task |
+| `e` | Edit task |
+| `m` | Move task |
+| `u` | Assign user/agent |
+| `d` | Delete task |
+| `?` | Show help |
+| `q` | Quit |
 
 ## Configuration
 
 ### Environment Variables
-- `KABAN_PATH`: The directory where Kaban should store its data. Defaults to the current working directory.
-- `KABAN_AGENT`: The name of the agent to use when creating tasks via CLI. Defaults to `user`.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KABAN_PATH` | Board data directory | Current directory |
+| `KABAN_AGENT` | Default agent name | `user` |
 
 ### Data Storage
-Kaban stores its state in a `.kaban` directory within the project root:
-- `.kaban/board.db`: SQLite database containing tasks and board state.
-- `.kaban/config.json`: Board configuration, including column definitions and WIP limits.
 
-### Default Column Configuration
-By default, Kaban initializes with the following columns:
-1. **Backlog**
-2. **To Do**
-3. **In Progress** (WIP limit: 3)
-4. **Done** (Terminal column)
+Kaban stores data in `.kaban/` directory:
+
+```
+.kaban/
+├── board.db      # SQLite database
+└── config.json   # Board configuration
+```
+
+### Default Columns
+
+| Column | WIP Limit |
+|--------|-----------|
+| Backlog | — |
+| To Do | — |
+| In Progress | 3 |
+| Review | 2 |
+| Done | — (terminal) |
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+
+```bash
+# Development
+bun install
+bun run build
+bun run lint
+bun run test
+```
+
+## License
+
+[MIT](LICENSE) © Kaban Contributors

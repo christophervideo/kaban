@@ -1,0 +1,18 @@
+{
+  "name": "kaban-marketplace",
+  "owner": {
+    "name": "Akira"
+  },
+  "metadata": {
+    "description": "Kaban project plugins and workflows",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "kaban-workflow",
+      "source": "./kaban-workflow",
+      "description": "Persistent Kanban board workflow with TodoWrite sync and SessionStart resume. Use when calling TodoWrite with 3+ items or starting multi-step tasks.",
+      "version": "1.0.0"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "kaban-workflow",
+  "version": "1.0.0",
+  "description": "Persistent Kanban board workflow with TodoWrite sync and SessionStart resume",
+  "author": {
+    "name": "Akira"
+  },
+  "keywords": ["kanban", "todo", "workflow", "task-tracking"]
+}
