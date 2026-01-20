@@ -18,6 +18,31 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { Command } from "commander";
 
+export type McpResponse = { content: { type: string; text: string }[]; isError?: boolean };
+
+export const mcpHelpers = {
+  getParam(
+    args: Record<string, unknown> | undefined,
+    primary: string,
+    alias: string,
+  ): string | undefined {
+    if (!args) return undefined;
+    const primaryVal = args[primary];
+    if (typeof primaryVal === "string" && primaryVal.trim()) return primaryVal;
+    const aliasVal = args[alias];
+    if (typeof aliasVal === "string" && aliasVal.trim()) return aliasVal;
+    return undefined;
+  },
+
+  errorResponse(message: string): McpResponse {
+    return { content: [{ type: "text", text: JSON.stringify({ error: message }) }], isError: true };
+  },
+
+  jsonResponse(data: unknown): McpResponse {
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  },
+};
+
 function getKabanPaths(basePath?: string) {
   const base = basePath ?? process.cwd();
   const kabanDir = join(base, ".kaban");
@@ -92,8 +117,10 @@ async function startMcpServer(workingDirectory: string) {
         description: "Get a task by its ID",
         inputSchema: {
           type: "object",
-          properties: { id: { type: "string", description: "Task ID (ULID)" } },
-          required: ["id"],
+          properties: {
+            id: { type: "string", description: "Task ID (ULID)" },
+            taskId: { type: "string", description: "Task ID (ULID) - alias for 'id'" },
+          },
         },
       },
       {
@@ -115,10 +142,11 @@ async function startMcpServer(workingDirectory: string) {
           type: "object",
           properties: {
             id: { type: "string", description: "Task ID (ULID)" },
+            taskId: { type: "string", description: "Task ID (ULID) - alias for 'id'" },
             columnId: { type: "string", description: "Target column ID" },
+            column: { type: "string", description: "Target column ID - alias for 'columnId'" },
             force: { type: "boolean", description: "Force move even if WIP limit exceeded" },
           },
-          required: ["id", "columnId"],
         },
       },
       {
@@ -128,6 +156,7 @@ async function startMcpServer(workingDirectory: string) {
           type: "object",
           properties: {
             id: { type: "string", description: "Task ID (ULID)" },
+            taskId: { type: "string", description: "Task ID (ULID) - alias for 'id'" },
             title: { type: "string", description: "New task title" },
             description: { type: ["string", "null"], description: "New task description" },
             assignedTo: { type: ["string", "null"], description: "Assigned agent name" },
@@ -142,7 +171,6 @@ async function startMcpServer(workingDirectory: string) {
               description: "Expected version for optimistic locking",
             },
           },
-          required: ["id"],
         },
       },
       {
@@ -150,8 +178,10 @@ async function startMcpServer(workingDirectory: string) {
         description: "Delete a task",
         inputSchema: {
           type: "object",
-          properties: { id: { type: "string", description: "Task ID (ULID)" } },
-          required: ["id"],
+          properties: {
+            id: { type: "string", description: "Task ID (ULID)" },
+            taskId: { type: "string", description: "Task ID (ULID) - alias for 'id'" },
+          },
         },
       },
       {
@@ -159,8 +189,13 @@ async function startMcpServer(workingDirectory: string) {
         description: "Mark a task as completed (move to terminal column)",
         inputSchema: {
           type: "object",
-          properties: { id: { type: "string", description: "Task ID (ULID) or partial ID" } },
-          required: ["id"],
+          properties: {
+            id: { type: "string", description: "Task ID (ULID) or partial ID" },
+            taskId: {
+              type: "string",
+              description: "Task ID (ULID) or partial ID - alias for 'id'",
+            },
+          },
         },
       },
       {
@@ -170,6 +205,8 @@ async function startMcpServer(workingDirectory: string) {
       },
     ],
   }));
+
+  const { getParam, errorResponse, jsonResponse } = mcpHelpers;
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
@@ -184,15 +221,7 @@ async function startMcpServer(workingDirectory: string) {
         const { kabanDir, dbPath, configPath } = getKabanPaths(targetPath);
 
         if (existsSync(dbPath)) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ error: "Board already exists in this directory" }),
-              },
-            ],
-            isError: true,
-          };
+          return errorResponse("Board already exists in this directory");
         }
 
         mkdirSync(kabanDir, { recursive: true });
@@ -208,82 +237,79 @@ async function startMcpServer(workingDirectory: string) {
         const boardService = new BoardService(db);
         await boardService.initializeBoard(config);
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(
-                {
-                  success: true,
-                  board: boardName,
-                  paths: { database: dbPath, config: configPath },
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return jsonResponse({
+          success: true,
+          board: boardName,
+          paths: { database: dbPath, config: configPath },
+        });
       }
 
       const { taskService, boardService } = await createContext(workingDirectory);
 
+      const taskArgs = args as Record<string, unknown> | undefined;
+      const taskId = getParam(taskArgs, "id", "taskId");
+
       switch (name) {
         case "kaban_add_task": {
+          const addArgs = args as Record<string, unknown> | undefined;
+          const title = addArgs?.title;
+          if (typeof title !== "string" || !title.trim()) {
+            return errorResponse("Title required (non-empty string)");
+          }
           const task = await taskService.addTask(args as Parameters<typeof taskService.addTask>[0]);
-          return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
+          return jsonResponse(task);
         }
         case "kaban_get_task": {
-          const task = await taskService.getTask((args as { id: string }).id);
-          if (!task)
-            return {
-              content: [{ type: "text", text: JSON.stringify({ error: "Task not found" }) }],
-            };
-          return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
+          if (!taskId) return errorResponse("Task ID required (use 'id' or 'taskId')");
+          const task = await taskService.getTask(taskId);
+          if (!task) return errorResponse("Task not found");
+          return jsonResponse(task);
         }
         case "kaban_list_tasks": {
           const tasks = await taskService.listTasks(
             args as Parameters<typeof taskService.listTasks>[0],
           );
-          return { content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }] };
+          return jsonResponse(tasks);
         }
         case "kaban_move_task": {
-          const { id, columnId, force } = args as { id: string; columnId: string; force?: boolean };
-          const task = await taskService.moveTask(id, columnId, { force });
-          return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
+          if (!taskId) return errorResponse("Task ID required (use 'id' or 'taskId')");
+          const targetColumn = getParam(taskArgs, "columnId", "column");
+          if (!targetColumn)
+            return errorResponse("Column ID required (use 'columnId' or 'column')");
+          const { force } = (args ?? {}) as { force?: boolean };
+          const task = await taskService.moveTask(taskId, targetColumn, { force });
+          return jsonResponse(task);
         }
         case "kaban_update_task": {
-          const { id, expectedVersion, ...updates } = args as {
-            id: string;
+          if (!taskId) return errorResponse("Task ID required (use 'id' or 'taskId')");
+          const {
+            taskId: _t,
+            id: _i,
+            expectedVersion,
+            ...updates
+          } = (args ?? {}) as {
+            id?: string;
+            taskId?: string;
             expectedVersion?: number;
             [key: string]: unknown;
           };
-          const task = await taskService.updateTask(id, updates, expectedVersion);
-          return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
+          const task = await taskService.updateTask(taskId, updates, expectedVersion);
+          return jsonResponse(task);
         }
         case "kaban_delete_task": {
-          await taskService.deleteTask((args as { id: string }).id);
-          return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
+          if (!taskId) return errorResponse("Task ID required (use 'id' or 'taskId')");
+          await taskService.deleteTask(taskId);
+          return jsonResponse({ success: true });
         }
         case "kaban_complete_task": {
-          const { id } = args as { id: string };
+          if (!taskId) return errorResponse("Task ID required (use 'id' or 'taskId')");
           const tasks = await taskService.listTasks();
-          const task = tasks.find((t) => t.id.startsWith(id));
-          if (!task)
-            return {
-              content: [
-                { type: "text", text: JSON.stringify({ error: `Task '${id}' not found` }) },
-              ],
-            };
+          const task = tasks.find((t) => t.id.startsWith(taskId));
+          if (!task) return errorResponse(`Task '${taskId}' not found`);
           const terminal = await boardService.getTerminalColumn();
-          if (!terminal)
-            return {
-              content: [
-                { type: "text", text: JSON.stringify({ error: "No terminal column configured" }) },
-              ],
-            };
+          if (!terminal) return errorResponse("No terminal column configured");
           const completed = await taskService.moveTask(task.id, terminal.id);
-          return { content: [{ type: "text", text: JSON.stringify(completed, null, 2) }] };
+          return jsonResponse(completed);
         }
         case "kaban_status": {
           const board = await boardService.getBoard();
@@ -296,29 +322,15 @@ async function startMcpServer(workingDirectory: string) {
             wipLimit: column.wipLimit,
             isTerminal: column.isTerminal,
           }));
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify(
-                  {
-                    board: { name: board?.name ?? "Kaban Board" },
-                    columns: columnStats,
-                    blockedCount: tasks.filter((t) => t.blockedReason).length,
-                    totalTasks: tasks.length,
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
+          return jsonResponse({
+            board: { name: board?.name ?? "Kaban Board" },
+            columns: columnStats,
+            blockedCount: tasks.filter((t) => t.blockedReason).length,
+            totalTasks: tasks.length,
+          });
         }
         default:
-          return {
-            content: [{ type: "text", text: JSON.stringify({ error: `Unknown tool: ${name}` }) }],
-            isError: true,
-          };
+          return errorResponse(`Unknown tool: ${name}`);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
