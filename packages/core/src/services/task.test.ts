@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { createDb, type DB, initializeSchema } from "../db/index.js";
+import { migrateArchiveSupport } from "../db/migrate.js";
 import { TaskSchema } from "../schemas.js";
 import { DEFAULT_CONFIG, KabanError } from "../types.js";
 import { BoardService } from "./board.js";
@@ -18,6 +19,7 @@ describe("TaskService", () => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
     db = await createDb(TEST_DB);
     await initializeSchema(db);
+    await migrateArchiveSupport(db);
     boardService = new BoardService(db);
     taskService = new TaskService(db, boardService);
     await boardService.initializeBoard(DEFAULT_CONFIG);
@@ -326,6 +328,96 @@ describe("TaskService", () => {
       expect(taskService.restoreTask(task.id, "nonexistent_column")).rejects.toThrow(
         /does not exist/,
       );
+    });
+  });
+
+  describe("searchArchive", () => {
+    test("searches archived tasks by title", async () => {
+      const task1 = await taskService.addTask({ title: "Fix authentication bug" });
+      const task2 = await taskService.addTask({ title: "Add login feature" });
+      await taskService.archiveTasks("default", { taskIds: [task1.id, task2.id] });
+
+      const result = await taskService.searchArchive("authentication");
+
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].title).toBe("Fix authentication bug");
+      expect(result.total).toBe(1);
+    });
+
+    test("searches archived tasks by description", async () => {
+      const task1 = await taskService.addTask({
+        title: "Task One",
+        description: "This task involves database optimization",
+      });
+      const task2 = await taskService.addTask({
+        title: "Task Two",
+        description: "This is about UI changes",
+      });
+      await taskService.archiveTasks("default", { taskIds: [task1.id, task2.id] });
+
+      const result = await taskService.searchArchive("database");
+
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].title).toBe("Task One");
+      expect(result.total).toBe(1);
+    });
+
+    test("returns only archived tasks, not active ones", async () => {
+      const archivedTask = await taskService.addTask({ title: "Archived search target" });
+      await taskService.addTask({ title: "Active search target" });
+      await taskService.archiveTasks("default", { taskIds: [archivedTask.id] });
+
+      const result = await taskService.searchArchive("search target");
+
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].id).toBe(archivedTask.id);
+      expect(result.tasks[0].archived).toBe(true);
+    });
+
+    test("pagination works with limit and offset", async () => {
+      const tasks = [];
+      for (let i = 1; i <= 5; i++) {
+        tasks.push(await taskService.addTask({ title: `Search item ${i}` }));
+      }
+      await taskService.archiveTasks("default", { taskIds: tasks.map((t) => t.id) });
+
+      const page1 = await taskService.searchArchive("Search item", { limit: 2, offset: 0 });
+      const page2 = await taskService.searchArchive("Search item", { limit: 2, offset: 2 });
+
+      expect(page1.tasks).toHaveLength(2);
+      expect(page1.total).toBe(5);
+      expect(page2.tasks).toHaveLength(2);
+      expect(page2.total).toBe(5);
+
+      const page1Ids = page1.tasks.map((t) => t.id);
+      const page2Ids = page2.tasks.map((t) => t.id);
+      expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(false);
+    });
+
+    test("empty query returns all archived tasks", async () => {
+      const task1 = await taskService.addTask({ title: "Archived One" });
+      const task2 = await taskService.addTask({ title: "Archived Two" });
+      await taskService.addTask({ title: "Active Task" });
+      await taskService.archiveTasks("default", { taskIds: [task1.id, task2.id] });
+
+      const result = await taskService.searchArchive("");
+
+      expect(result.tasks).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.tasks.every((t) => t.archived)).toBe(true);
+    });
+
+    test("returns total count for pagination UI", async () => {
+      const tasks = [];
+      for (let i = 1; i <= 10; i++) {
+        tasks.push(await taskService.addTask({ title: `Matching keyword ${i}` }));
+      }
+      await taskService.archiveTasks("default", { taskIds: tasks.map((t) => t.id) });
+
+      const result = await taskService.searchArchive("keyword", { limit: 3 });
+
+      expect(result.tasks).toHaveLength(3);
+      expect(result.total).toBe(10);
     });
   });
 });

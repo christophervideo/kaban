@@ -30,6 +30,16 @@ export interface ArchiveTasksResult {
   taskIds: string[];
 }
 
+export interface SearchArchiveOptions {
+  limit?: number;
+  offset?: number;
+}
+
+export interface SearchArchiveResult {
+  tasks: Task[];
+  total: number;
+}
+
 export class TaskService {
   constructor(
     private db: DB,
@@ -320,5 +330,112 @@ export class TaskService {
       .where(eq(tasks.id, taskId));
 
     return this.getTaskOrThrow(taskId);
+  }
+
+  async searchArchive(query: string, options?: SearchArchiveOptions): Promise<SearchArchiveResult> {
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+
+    if (!query.trim()) {
+      const countResult = await this.db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(tasks)
+        .where(eq(tasks.archived, true));
+
+      const total = countResult[0]?.count ?? 0;
+
+      const archivedTasks = await this.db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.archived, true))
+        .orderBy(tasks.archivedAt)
+        .limit(limit)
+        .offset(offset);
+
+      return { tasks: archivedTasks, total };
+    }
+
+    const ftsQuery = query
+      .trim()
+      .split(/\s+/)
+      .map((term) => `"${term}"`)
+      .join(" ");
+
+    type TaskRow = {
+      id: string;
+      title: string;
+      description: string | null;
+      column_id: string;
+      position: number;
+      created_by: string;
+      assigned_to: string | null;
+      parent_id: string | null;
+      depends_on: string;
+      files: string;
+      labels: string;
+      blocked_reason: string | null;
+      version: number;
+      created_at: number;
+      updated_at: number;
+      started_at: number | null;
+      completed_at: number | null;
+      archived: number;
+      archived_at: number | null;
+    };
+
+    interface BunSqliteClient {
+      prepare: (sql: string) => {
+        all: (...args: unknown[]) => TaskRow[];
+        get: (...args: unknown[]) => { count: number } | undefined;
+      };
+    }
+
+    const client = this.db.$client as unknown as BunSqliteClient;
+
+    const countRow = client
+      .prepare(
+        `SELECT COUNT(*) as count FROM tasks t
+         JOIN tasks_fts fts ON t.id = fts.id
+         WHERE tasks_fts MATCH ?
+         AND t.archived = 1`,
+      )
+      .get(ftsQuery);
+
+    const total = countRow?.count ?? 0;
+
+    const rows = client
+      .prepare(
+        `SELECT t.* FROM tasks t
+         JOIN tasks_fts fts ON t.id = fts.id
+         WHERE tasks_fts MATCH ?
+         AND t.archived = 1
+         ORDER BY rank
+         LIMIT ? OFFSET ?`,
+      )
+      .all(ftsQuery, limit, offset);
+
+    const searchTasks: Task[] = rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      columnId: row.column_id,
+      position: row.position,
+      createdBy: row.created_by,
+      assignedTo: row.assigned_to,
+      parentId: row.parent_id,
+      dependsOn: JSON.parse(row.depends_on || "[]"),
+      files: JSON.parse(row.files || "[]"),
+      labels: JSON.parse(row.labels || "[]"),
+      blockedReason: row.blocked_reason,
+      version: row.version,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      startedAt: row.started_at ? new Date(row.started_at) : null,
+      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+      archived: Boolean(row.archived),
+      archivedAt: row.archived_at ? new Date(row.archived_at) : null,
+    }));
+
+    return { tasks: searchTasks, total };
   }
 }
