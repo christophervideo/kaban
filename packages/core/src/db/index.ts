@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as schema from "./schema.js";
 import { ExitCode, KabanError } from "../types.js";
+import * as schema from "./schema.js";
 
 export * from "./schema.js";
 
@@ -214,7 +214,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   started_at INTEGER,
-  completed_at INTEGER
+  completed_at INTEGER,
+  archived INTEGER NOT NULL DEFAULT 0,
+  archived_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS undo_log (

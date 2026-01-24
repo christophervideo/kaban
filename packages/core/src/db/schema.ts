@@ -38,6 +38,8 @@ export const tasks = sqliteTable("tasks", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   startedAt: integer("started_at", { mode: "timestamp" }),
   completedAt: integer("completed_at", { mode: "timestamp" }),
+  archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+  archivedAt: integer("archived_at", { mode: "timestamp" }),
 });
 
 export const undoLog = sqliteTable("undo_log", {
