@@ -280,6 +280,12 @@ export class TaskService {
     };
   }
 
+  /**
+   * Restores an archived task.
+   * Note: WIP limits are intentionally bypassed for restore operations because
+   * restore is a recovery operation - users should always be able to recover their work,
+   * and archived tasks already existed in the system.
+   */
   async restoreTask(taskId: string, targetColumnId?: string): Promise<Task> {
     const task = await this.getTask(taskId);
     if (!task) {

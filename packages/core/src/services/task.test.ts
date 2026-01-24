@@ -318,5 +318,14 @@ describe("TaskService", () => {
 
       expect(taskService.restoreTask(task.id)).rejects.toThrow(/not archived/);
     });
+
+    test("throws error if target column does not exist", async () => {
+      const task = await taskService.addTask({ title: "To archive", columnId: "done" });
+      await taskService.archiveTasks("default", { taskIds: [task.id] });
+
+      expect(taskService.restoreTask(task.id, "nonexistent_column")).rejects.toThrow(
+        /does not exist/,
+      );
+    });
   });
 });
