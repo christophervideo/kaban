@@ -71,6 +71,8 @@ export class TaskService {
       updatedAt: now,
       startedAt: null,
       completedAt: null,
+      archived: false,
+      archivedAt: null,
     });
 
     return this.getTaskOrThrow(id);

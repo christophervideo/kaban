@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { createDb, type DB, initializeSchema } from "../db/index.js";
+import { TaskSchema } from "../schemas.js";
 import { DEFAULT_CONFIG, KabanError } from "../types.js";
 import { BoardService } from "./board.js";
 import { TaskService } from "./task.js";
@@ -36,6 +37,20 @@ describe("TaskService", () => {
       expect(task.createdBy).toBe("user");
       expect(task.version).toBe(1);
       expect(task.id).toHaveLength(26);
+    });
+
+    test("creates task with archived fields initialized", async () => {
+      const task = await taskService.addTask({ title: "Test task" });
+
+      expect(task.archived).toBe(false);
+      expect(task.archivedAt).toBeNull();
+
+      const parsed = TaskSchema.safeParse(task);
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.archived).toBe(false);
+        expect(parsed.data.archivedAt).toBeNull();
+      }
     });
 
     test("creates task with custom column and agent", async () => {

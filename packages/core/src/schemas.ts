@@ -46,6 +46,8 @@ export const TaskSchema = z.object({
   updatedAt: z.date(),
   startedAt: z.date().nullable(),
   completedAt: z.date().nullable(),
+  archived: z.boolean().default(false),
+  archivedAt: z.date().nullable().optional(),
 });
 
 export const ColumnSchema = z.object({
@@ -132,6 +134,7 @@ export const TaskResponseSchema = TaskSchema.extend({
   updatedAt: z.string().datetime(),
   startedAt: z.string().datetime().nullable(),
   completedAt: z.string().datetime().nullable(),
+  archivedAt: z.string().datetime().nullable().optional(),
 });
 
 export const BoardStatusSchema = z.object({
