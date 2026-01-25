@@ -4,6 +4,7 @@ const result = await build({
   entrypoints: ["./src/index.ts"],
   outdir: "./dist",
   target: "node",
+  packages: "external",
   loader: {
     ".sql": "text",
     ".json": "json",

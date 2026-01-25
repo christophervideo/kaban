@@ -9,14 +9,18 @@ export { runMigrations } from "./migrator.js";
 
 type DrizzleDb = ReturnType<typeof import("drizzle-orm/libsql").drizzle>;
 
+// Helper to avoid "unknown" casting in consumers
+type BunDatabase = InstanceType<typeof import("bun:sqlite").Database>;
+type LibsqlClient = import("@libsql/client").Client;
+
 /**
  * Database adapter interface.
  * Supports both bun:sqlite and @libsql/client backends.
  * Note: Uses libsql drizzle type for compatibility; bun:sqlite is API-compatible at runtime.
  */
-export type DB = DrizzleDb & {
+export type DB = Omit<DrizzleDb, "$client"> & {
   /** Raw database client. Type varies by backend. */
-  $client: unknown;
+  $client: BunDatabase | LibsqlClient;
   /**
    * Execute raw SQL statements.
    * @internal For schema initialization only. Does not sanitize input.
@@ -170,10 +174,21 @@ export async function createDb(
 
   try {
     let db: DB;
+    const driver = process.env.KABAN_DB_DRIVER;
+    const preferBun = isBun && driver !== "libsql";
+    const forceLibsql = driver === "libsql";
 
     if (typeof config === "string") {
-      db = isBun ? await createBunDb(config) : await createLibsqlDb({ url: `file:${config}` });
-    } else if (isBun && config.url.startsWith("file:")) {
+      if (forceLibsql) {
+        db = await createLibsqlDb({ url: `file:${config}` });
+      } else if (preferBun) {
+        db = await createBunDb(config);
+      } else {
+        db = await createLibsqlDb({ url: `file:${config}` });
+      }
+    } else if (forceLibsql) {
+      db = await createLibsqlDb(config);
+    } else if (preferBun && config.url.startsWith("file:")) {
       db = await createBunDb(fileUrlToPath(config.url));
     } else {
       db = await createLibsqlDb(config);
