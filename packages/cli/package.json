@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --packages external && bun build ./src/hook-entry.ts --outfile ./dist/kaban-hook --target node && chmod +x ./dist/index.js ./dist/kaban-hook",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --packages external && bun build ./src/hook-entry.ts --outfile ./dist/kaban-hook --target bun && chmod +x ./dist/index.js ./dist/kaban-hook",
     "dev": "bun run ./src/index.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
