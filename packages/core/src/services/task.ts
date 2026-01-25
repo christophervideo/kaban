@@ -655,4 +655,28 @@ export class TaskService {
       rejected: false,
     };
   }
+
+  async getArchiveStats(): Promise<{
+    totalArchived: number;
+    byColumn: Record<string, number>;
+    oldestArchivedAt: Date | null;
+  }> {
+    const archived = await this.db.select().from(tasks).where(eq(tasks.archived, true));
+
+    const byColumn: Record<string, number> = {};
+    let oldestArchivedAt: Date | null = null;
+
+    for (const task of archived) {
+      byColumn[task.columnId] = (byColumn[task.columnId] ?? 0) + 1;
+      if (task.archivedAt && (!oldestArchivedAt || task.archivedAt < oldestArchivedAt)) {
+        oldestArchivedAt = task.archivedAt;
+      }
+    }
+
+    return {
+      totalArchived: archived.length,
+      byColumn,
+      oldestArchivedAt,
+    };
+  }
 }

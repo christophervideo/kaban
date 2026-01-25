@@ -856,4 +856,21 @@ describe("TaskService", () => {
       expect(result.similarTasks).toBeDefined();
     });
   });
+
+  describe("getArchiveStats", () => {
+    test("returns archive statistics", async () => {
+      await taskService.addTask({ title: "Active" });
+      const done1 = await taskService.addTask({ title: "Done 1" });
+      await taskService.moveTask(done1.id, "done");
+      const done2 = await taskService.addTask({ title: "Done 2" });
+      await taskService.moveTask(done2.id, "done");
+      await taskService.archiveTasks("default", { status: "done" });
+
+      const stats = await taskService.getArchiveStats();
+
+      expect(stats.totalArchived).toBe(2);
+      expect(stats.byColumn.done).toBe(2);
+      expect(stats.oldestArchivedAt).not.toBeNull();
+    });
+  });
 });
