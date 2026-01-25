@@ -11,12 +11,130 @@ tasks:
     cmds:
       - task --list
 
+  # === Build ===
   build:
     desc: Build all packages
     cmds:
       - bun install
       - bun run build
 
+  build:core:
+    desc: Build core package only
+    dir: packages/core
+    cmds:
+      - bun run build
+
+  build:cli:
+    desc: Build CLI package only
+    dir: packages/cli
+    cmds:
+      - bun run build
+
+  build:tui:
+    desc: Build TUI package only
+    dir: packages/tui
+    cmds:
+      - bun run build
+
+  build:tui:bin:
+    desc: Build TUI standalone binary
+    dir: packages/tui
+    cmds:
+      - bun build --compile --minify ./src/index.ts --outfile ./dist-bin/kaban-tui
+
+  # === Dev (source, hot reload) ===
+  dev:cli:
+    desc: Run CLI from source (pass args after --)
+    dir: packages/cli
+    cmds:
+      - bun run src/index.ts {{.CLI_ARGS}}
+
+  dev:tui:
+    desc: Run TUI from source
+    dir: packages/tui
+    cmds:
+      - bun run src/index.ts
+
+  dev:tui:watch:
+    desc: Run TUI from source with watch mode
+    dir: packages/tui
+    cmds:
+      - bun run --watch src/index.ts
+
+  dev:docs:
+    desc: Serve landing page locally
+    cmds:
+      - bun run docs/serve.ts
+
+  # === Run (built dist) ===
+  cli:
+    desc: Run built CLI (pass args after --)
+    cmds:
+      - bun ./packages/cli/dist/index.js {{.CLI_ARGS}}
+
+  tui:
+    desc: Run built TUI
+    cmds:
+      - bun ./packages/tui/dist/index.js
+
+  tui:bin:
+    desc: Run TUI standalone binary
+    cmds:
+      - ./packages/tui/dist-bin/kaban-tui
+
+  # === Test ===
+  test:
+    desc: Run all tests
+    cmds:
+      - bun run test
+
+  test:core:
+    desc: Run core tests only
+    dir: packages/core
+    cmds:
+      - bun test
+
+  test:cli:
+    desc: Run CLI tests only
+    dir: packages/cli
+    cmds:
+      - bun test
+
+  # === Database ===
+  db:generate:
+    desc: Generate new migration (NAME=xxx)
+    dir: packages/core
+    cmds:
+      - bunx drizzle-kit generate --name {{.NAME | default "migration"}}
+
+  db:check:
+    desc: Check migration status
+    dir: packages/core
+    cmds:
+      - bunx drizzle-kit check
+
+  # === Quality ===
+  typecheck:
+    desc: Run type checking
+    cmds:
+      - bun run typecheck
+
+  lint:
+    desc: Run linter
+    cmds:
+      - bun run lint
+
+  format:
+    desc: Format code
+    cmds:
+      - bun run format
+
+  check:
+    desc: Run all checks (lint + format + typecheck)
+    cmds:
+      - bun run check
+
+  # === Install/Uninstall ===
   install:
     desc: Install kaban wrapper script to system
     deps: [build]
@@ -53,42 +171,16 @@ tasks:
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -rf packages/*/dist
+      - rm -rf packages/*/dist packages/tui/dist-bin
       - echo "Cleaned build artifacts"
 
-  dev:cli:
-    desc: Run CLI in development mode
-    dir: packages/cli
+  # === Shortcuts ===
+  b:
+    desc: Alias for build
     cmds:
-      - bun run dev
+      - task: build
 
-  dev:tui:
-    desc: Run TUI in development mode
-    dir: packages/tui
+  t:
+    desc: Alias for test
     cmds:
-      - bun run dev
-
-  dev:docs:
-    desc: Serve landing page locally
-    cmds:
-      - bun run docs/serve.ts
-
-  test:
-    desc: Run all tests
-    cmds:
-      - bun run test
-
-  typecheck:
-    desc: Run type checking
-    cmds:
-      - bun run typecheck
-
-  lint:
-    desc: Run linter
-    cmds:
-      - bun run lint
-
-  format:
-    desc: Format code
-    cmds:
-      - bun run format
+      - task: test
