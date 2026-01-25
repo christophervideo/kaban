@@ -583,6 +583,79 @@ describe("TaskService", () => {
     });
   });
 
+  describe("addDependency", () => {
+    test("adds dependency to task", async () => {
+      const dep = await taskService.addTask({ title: "Dependency task" });
+      const task = await taskService.addTask({ title: "Main task" });
+
+      const updated = await taskService.addDependency(task.id, dep.id);
+
+      expect(updated.dependsOn).toContain(dep.id);
+      expect(updated.dependsOn).toHaveLength(1);
+    });
+
+    test("prevents duplicate dependencies", async () => {
+      const dep = await taskService.addTask({ title: "Dependency task" });
+      const task = await taskService.addTask({ title: "Main task", dependsOn: [dep.id] });
+
+      const updated = await taskService.addDependency(task.id, dep.id);
+
+      expect(updated.dependsOn).toHaveLength(1);
+      expect(updated.dependsOn).toContain(dep.id);
+    });
+
+    test("prevents self-dependency", async () => {
+      const task = await taskService.addTask({ title: "Main task" });
+
+      expect(taskService.addDependency(task.id, task.id)).rejects.toThrow(
+        /cannot depend on itself/,
+      );
+    });
+
+    test("throws if task not found", async () => {
+      const dep = await taskService.addTask({ title: "Dependency task" });
+
+      expect(taskService.addDependency("01ARZ3NDEKTSV4RRFFQ69G5FAV", dep.id)).rejects.toThrow(
+        /not found/,
+      );
+    });
+
+    test("throws if dependency task not found", async () => {
+      const task = await taskService.addTask({ title: "Main task" });
+
+      expect(taskService.addDependency(task.id, "01ARZ3NDEKTSV4RRFFQ69G5FAV")).rejects.toThrow(
+        /not found/,
+      );
+    });
+  });
+
+  describe("removeDependency", () => {
+    test("removes dependency from task", async () => {
+      const dep = await taskService.addTask({ title: "Dependency task" });
+      const task = await taskService.addTask({ title: "Main task", dependsOn: [dep.id] });
+
+      const updated = await taskService.removeDependency(task.id, dep.id);
+
+      expect(updated.dependsOn).not.toContain(dep.id);
+      expect(updated.dependsOn).toHaveLength(0);
+    });
+
+    test("is no-op if dependency does not exist", async () => {
+      const dep = await taskService.addTask({ title: "Dependency task" });
+      const task = await taskService.addTask({ title: "Main task" });
+
+      const updated = await taskService.removeDependency(task.id, dep.id);
+
+      expect(updated.dependsOn).toHaveLength(0);
+    });
+
+    test("throws if task not found", async () => {
+      expect(
+        taskService.removeDependency("01ARZ3NDEKTSV4RRFFQ69G5FAV", "01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+      ).rejects.toThrow(/not found/);
+    });
+  });
+
   describe("validateDependencies", () => {
     test("returns valid:true when task has no dependencies", async () => {
       const task = await taskService.addTask({ title: "Task without deps" });

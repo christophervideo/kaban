@@ -507,6 +507,55 @@ export class TaskService {
     return { deletedCount: allTasks.length };
   }
 
+  async addDependency(taskId: string, dependsOnId: string): Promise<Task> {
+    if (taskId === dependsOnId) {
+      throw new KabanError("Task cannot depend on itself", ExitCode.VALIDATION);
+    }
+
+    const task = await this.getTaskOrThrow(taskId);
+    await this.getTaskOrThrow(dependsOnId);
+
+    if (task.dependsOn.includes(dependsOnId)) {
+      return task;
+    }
+
+    const updatedDependsOn = [...task.dependsOn, dependsOnId];
+    const now = new Date();
+
+    await this.db
+      .update(tasks)
+      .set({
+        dependsOn: updatedDependsOn,
+        version: task.version + 1,
+        updatedAt: now,
+      })
+      .where(eq(tasks.id, taskId));
+
+    return this.getTaskOrThrow(taskId);
+  }
+
+  async removeDependency(taskId: string, dependsOnId: string): Promise<Task> {
+    const task = await this.getTaskOrThrow(taskId);
+
+    if (!task.dependsOn.includes(dependsOnId)) {
+      return task;
+    }
+
+    const updatedDependsOn = task.dependsOn.filter((id) => id !== dependsOnId);
+    const now = new Date();
+
+    await this.db
+      .update(tasks)
+      .set({
+        dependsOn: updatedDependsOn,
+        version: task.version + 1,
+        updatedAt: now,
+      })
+      .where(eq(tasks.id, taskId));
+
+    return this.getTaskOrThrow(taskId);
+  }
+
   async validateDependencies(taskId: string): Promise<ValidateDependenciesResult> {
     const task = await this.getTask(taskId);
     if (!task) {
