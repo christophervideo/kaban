@@ -94,7 +94,10 @@ export const AddTaskInputSchema = z.object({
   title: TitleSchema,
   description: z.string().max(5000).optional(),
   columnId: ColumnIdSchema.optional(),
+  createdBy: AgentNameSchema.optional(),
+  /** @deprecated Use createdBy instead */
   agent: AgentNameSchema.optional(),
+  assignedTo: AgentNameSchema.optional(),
   dependsOn: z.array(UlidSchema).optional(),
   files: z.array(z.string()).optional(),
   labels: z.array(z.string().max(50)).optional(),
@@ -174,7 +177,10 @@ const AddTaskInputJsonSchema = z.object({
   title: TitleBaseSchema,
   description: z.string().max(5000).optional(),
   columnId: ColumnIdSchema.optional(),
+  createdBy: AgentNameBaseSchema.optional(),
+  /** @deprecated Use createdBy instead */
   agent: AgentNameBaseSchema.optional(),
+  assignedTo: AgentNameBaseSchema.optional(),
   dependsOn: z.array(UlidSchema).optional(),
   files: z.array(z.string()).optional(),
   labels: z.array(z.string().max(50)).optional(),
