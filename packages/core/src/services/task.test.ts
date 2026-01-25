@@ -526,4 +526,63 @@ describe("TaskService", () => {
       expect(await taskService.getTask(task3.id)).toBeNull();
     });
   });
+
+  describe("validateDependencies", () => {
+    test("returns valid:true when task has no dependencies", async () => {
+      const task = await taskService.addTask({ title: "Task without deps" });
+
+      const result = await taskService.validateDependencies(task.id);
+
+      expect(result.valid).toBe(true);
+      expect(result.blockedBy).toEqual([]);
+    });
+
+    test("returns valid:true when all dependencies are completed", async () => {
+      const dep1 = await taskService.addTask({ title: "Dependency 1" });
+      const dep2 = await taskService.addTask({ title: "Dependency 2" });
+      await taskService.moveTask(dep1.id, "done");
+      await taskService.moveTask(dep2.id, "done");
+
+      const task = await taskService.addTask({
+        title: "Task with deps",
+        dependsOn: [dep1.id, dep2.id],
+      });
+
+      const result = await taskService.validateDependencies(task.id);
+
+      expect(result.valid).toBe(true);
+      expect(result.blockedBy).toEqual([]);
+    });
+
+    test("returns valid:false with blockedBy when dependencies are incomplete", async () => {
+      const completedDep = await taskService.addTask({ title: "Completed dep" });
+      await taskService.moveTask(completedDep.id, "done");
+      const incompleteDep1 = await taskService.addTask({
+        title: "Incomplete dep 1",
+        columnId: "todo",
+      });
+      const incompleteDep2 = await taskService.addTask({
+        title: "Incomplete dep 2",
+        columnId: "in_progress",
+      });
+
+      const task = await taskService.addTask({
+        title: "Task with mixed deps",
+        dependsOn: [completedDep.id, incompleteDep1.id, incompleteDep2.id],
+      });
+
+      const result = await taskService.validateDependencies(task.id);
+
+      expect(result.valid).toBe(false);
+      expect(result.blockedBy).toHaveLength(2);
+      expect(result.blockedBy).toContain(incompleteDep1.id);
+      expect(result.blockedBy).toContain(incompleteDep2.id);
+    });
+
+    test("throws error if task not found", async () => {
+      expect(taskService.validateDependencies("01ARZ3NDEKTSV4RRFFQ69G5FAV")).rejects.toThrow(
+        /not found/,
+      );
+    });
+  });
 });

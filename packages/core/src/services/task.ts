@@ -52,6 +52,11 @@ export interface ResetBoardResult {
   deletedCount: number;
 }
 
+export interface ValidateDependenciesResult {
+  valid: boolean;
+  blockedBy: string[];
+}
+
 export class TaskService {
   constructor(
     private db: DB,
@@ -489,5 +494,35 @@ export class TaskService {
     await this.db.delete(tasks).where(sql`1=1`);
 
     return { deletedCount: allTasks.length };
+  }
+
+  async validateDependencies(taskId: string): Promise<ValidateDependenciesResult> {
+    const task = await this.getTask(taskId);
+    if (!task) {
+      throw new KabanError(`Task '${taskId}' not found`, ExitCode.NOT_FOUND);
+    }
+
+    if (!task.dependsOn || task.dependsOn.length === 0) {
+      return { valid: true, blockedBy: [] };
+    }
+
+    const terminalColumn = await this.boardService.getTerminalColumn();
+    if (!terminalColumn) {
+      return { valid: true, blockedBy: [] };
+    }
+
+    const blockedBy: string[] = [];
+
+    for (const depId of task.dependsOn) {
+      const depTask = await this.getTask(depId);
+      if (depTask && depTask.columnId !== terminalColumn.id) {
+        blockedBy.push(depId);
+      }
+    }
+
+    return {
+      valid: blockedBy.length === 0,
+      blockedBy,
+    };
   }
 }
