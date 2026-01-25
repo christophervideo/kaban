@@ -307,6 +307,24 @@ async function startMcpServer(workingDirectory: string) {
           },
         },
       },
+      {
+        name: "kaban_add_task_checked",
+        description: "Add task with duplicate detection. Rejects if very similar task exists.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Task title" },
+            description: { type: "string", description: "Task description" },
+            columnId: { type: "string", description: "Target column (default: todo)" },
+            createdBy: { type: "string", description: "Creator: user, claude, etc." },
+            agent: { type: "string", description: "Creator (deprecated, use createdBy)" },
+            assignedTo: { type: "string", description: "Assignee" },
+            dependsOn: { type: "array", items: { type: "string" }, description: "Dependency IDs" },
+            force: { type: "boolean", description: "Create even if similar exists" },
+          },
+          required: ["title"],
+        },
+      },
     ],
   }));
 
@@ -579,6 +597,22 @@ async function startMcpServer(workingDirectory: string) {
           const id = getParam(taskArgs, "taskId", "id");
           if (!id) return errorResponse("Task ID required");
           const result = await taskService.validateDependencies(id);
+          return jsonResponse(result);
+        }
+        case "kaban_add_task_checked": {
+          const addCheckedArgs = args as Record<string, unknown> | undefined;
+          const title = addCheckedArgs?.title;
+          if (typeof title !== "string" || !title.trim()) {
+            return errorResponse("Title required");
+          }
+          const { force, ...taskInput } = addCheckedArgs as {
+            force?: boolean;
+            [key: string]: unknown;
+          };
+          const result = await taskService.addTaskChecked(
+            taskInput as Parameters<typeof taskService.addTask>[0],
+            { force },
+          );
           return jsonResponse(result);
         }
         default:
