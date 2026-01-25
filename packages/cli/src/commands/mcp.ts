@@ -203,6 +203,73 @@ async function startMcpServer(workingDirectory: string) {
         description: "Get board status summary",
         inputSchema: { type: "object", properties: {} },
       },
+      {
+        name: "kaban_archive_tasks",
+        description:
+          "Archive completed or stale tasks. By default archives from terminal columns only.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            columnId: { type: "string", description: "Archive from this column only" },
+            olderThanDays: { type: "number", description: "Archive tasks older than N days" },
+            allColumns: { type: "boolean", description: "Archive from ALL columns" },
+            dryRun: { type: "boolean", description: "Preview without archiving" },
+          },
+        },
+      },
+      {
+        name: "kaban_search_archive",
+        description: "Search archived tasks using full-text search",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search query" },
+            limit: { type: "number", description: "Max results (default: 50)" },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "kaban_restore_task",
+        description: "Restore a task from archive",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Task ID to restore" },
+            taskId: { type: "string", description: "Task ID - alias for id" },
+            columnId: { type: "string", description: "Target column (default: todo)" },
+          },
+        },
+      },
+      {
+        name: "kaban_purge_archive",
+        description: "Permanently delete all archived tasks",
+        inputSchema: {
+          type: "object",
+          properties: {
+            confirm: { type: "boolean", description: "Must be true to confirm" },
+            dryRun: { type: "boolean", description: "Preview without deleting" },
+          },
+          required: ["confirm"],
+        },
+      },
+      {
+        name: "kaban_reset_board",
+        description: "Delete ALL tasks (active and archived)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            confirm: { type: "boolean", description: "Must be true to confirm" },
+            dryRun: { type: "boolean", description: "Preview without deleting" },
+          },
+          required: ["confirm"],
+        },
+      },
+      {
+        name: "kaban_archive_stats",
+        description: "Get archive statistics",
+        inputSchema: { type: "object", properties: {} },
+      },
     ],
   }));
 
@@ -327,6 +394,132 @@ async function startMcpServer(workingDirectory: string) {
             columns: columnStats,
             blockedCount: tasks.filter((t) => t.blockedReason).length,
             totalTasks: tasks.length,
+          });
+        }
+        case "kaban_archive_tasks": {
+          const { columnId, olderThanDays, allColumns, dryRun } = (args ?? {}) as {
+            columnId?: string;
+            olderThanDays?: number;
+            allColumns?: boolean;
+            dryRun?: boolean;
+          };
+
+          const columns = await boardService.getColumns();
+          const terminalColumns = columns.filter((c) => c.isTerminal);
+
+          let targetColumnIds: string[] = [];
+          if (columnId) {
+            targetColumnIds = [columnId];
+          } else if (allColumns) {
+            targetColumnIds = columns.map((c) => c.id);
+          } else {
+            targetColumnIds = terminalColumns.map((c) => c.id);
+          }
+
+          if (targetColumnIds.length === 0) {
+            return jsonResponse({
+              archivedCount: 0,
+              taskIds: [],
+              message: "No columns to archive from",
+            });
+          }
+
+          const allTasks = await taskService.listTasks();
+          let tasksToArchive = allTasks.filter(
+            (t) => !t.archived && targetColumnIds.includes(t.columnId),
+          );
+
+          if (olderThanDays !== undefined) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - olderThanDays);
+            tasksToArchive = tasksToArchive.filter((t) => t.createdAt < cutoff);
+          }
+
+          if (tasksToArchive.length === 0) {
+            return jsonResponse({
+              archivedCount: 0,
+              taskIds: [],
+              message: "No matching tasks to archive",
+            });
+          }
+
+          if (dryRun) {
+            return jsonResponse({
+              dryRun: true,
+              wouldArchive: tasksToArchive.length,
+              taskIds: tasksToArchive.map((t) => t.id),
+              tasks: tasksToArchive.map((t) => ({
+                id: t.id,
+                title: t.title,
+                columnId: t.columnId,
+              })),
+            });
+          }
+
+          const result = await taskService.archiveTasks("default", {
+            taskIds: tasksToArchive.map((t) => t.id),
+          });
+          return jsonResponse(result);
+        }
+        case "kaban_search_archive": {
+          const { query, limit } = (args ?? {}) as { query?: string; limit?: number };
+          if (!query) return errorResponse("Query required");
+          const result = await taskService.searchArchive(query, { limit });
+          return jsonResponse(result);
+        }
+        case "kaban_restore_task": {
+          const id = getParam(taskArgs, "id", "taskId");
+          if (!id) return errorResponse("Task ID required");
+          const { columnId } = (args ?? {}) as { columnId?: string };
+          const task = await taskService.restoreTask(id, columnId);
+          return jsonResponse(task);
+        }
+        case "kaban_purge_archive": {
+          const { confirm, dryRun } = (args ?? {}) as { confirm?: boolean; dryRun?: boolean };
+          if (!confirm) {
+            return errorResponse("Must set confirm: true to purge archive");
+          }
+          if (dryRun) {
+            const result = await taskService.searchArchive("", { limit: 1000 });
+            return jsonResponse({
+              dryRun: true,
+              wouldDelete: result.total,
+            });
+          }
+          const result = await taskService.purgeArchive();
+          return jsonResponse(result);
+        }
+        case "kaban_reset_board": {
+          const { confirm, dryRun } = (args ?? {}) as { confirm?: boolean; dryRun?: boolean };
+          if (!confirm) {
+            return errorResponse("Must set confirm: true to reset board");
+          }
+          if (dryRun) {
+            const allTasks = await taskService.listTasks();
+            const archivedResult = await taskService.searchArchive("", { limit: 1000 });
+            return jsonResponse({
+              dryRun: true,
+              wouldDelete: allTasks.length + archivedResult.total,
+              activeTasks: allTasks.length,
+              archivedTasks: archivedResult.total,
+            });
+          }
+          const result = await taskService.resetBoard();
+          return jsonResponse(result);
+        }
+        case "kaban_archive_stats": {
+          const archivedResult = await taskService.searchArchive("", { limit: 1 });
+          const allTasks = await taskService.listTasks();
+          const columns = await boardService.getColumns();
+          const terminalColumns = columns.filter((c) => c.isTerminal);
+          const completedCount = allTasks.filter((t) =>
+            terminalColumns.some((c) => c.id === t.columnId),
+          ).length;
+
+          return jsonResponse({
+            archivedCount: archivedResult.total,
+            activeTasks: allTasks.length,
+            completedNotArchived: completedCount,
           });
         }
         default:
