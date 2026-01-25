@@ -1,6 +1,6 @@
 import { KabanError } from "@kaban-board/core";
 import { Command } from "commander";
-import { getContext } from "../lib/context.js";
+import { getAgent, getContext } from "../lib/context.js";
 import { outputError, outputSuccess } from "../lib/json-output.js";
 
 export const moveCommand = new Command("move")
@@ -9,6 +9,7 @@ export const moveCommand = new Command("move")
   .argument("[column]", "Target column")
   .option("-n, --next", "Move to next column")
   .option("-f, --force", "Force move even if WIP limit exceeded")
+  .option("-A, --assign [agent]", "Assign task to agent (defaults to current agent)")
   .option("-j, --json", "Output as JSON")
   .action(async (id, column, options) => {
     const json = options.json;
@@ -44,17 +45,29 @@ export const moveCommand = new Command("move")
         process.exit(4);
       }
 
+      let assignAgent: string | null = null;
+      if (options.assign !== undefined) {
+        assignAgent = options.assign === true ? getAgent() : options.assign;
+        await taskService.updateTask(task.id, { assignedTo: assignAgent });
+      }
+
       const moved = await taskService.moveTask(task.id, targetColumn, {
         force: options.force,
       });
 
+      const finalTask = assignAgent ? await taskService.getTask(task.id) : moved;
+
       if (json) {
-        outputSuccess(moved);
+        outputSuccess(finalTask);
         return;
       }
 
       const col = await boardService.getColumn(moved.columnId);
-      console.log(`Moved [${moved.id.slice(0, 8)}] to ${col?.name}`);
+      let msg = `Moved [${moved.id.slice(0, 8)}] to ${col?.name}`;
+      if (assignAgent) {
+        msg += ` (assigned to ${assignAgent})`;
+      }
+      console.log(msg);
     } catch (error) {
       if (error instanceof KabanError) {
         if (json) outputError(error.code, error.message);
