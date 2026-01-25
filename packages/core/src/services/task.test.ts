@@ -73,6 +73,42 @@ describe("TaskService", () => {
     });
   });
 
+  describe("addTask with createdBy", () => {
+    test("uses createdBy when provided", async () => {
+      const task = await taskService.addTask({
+        title: "Test",
+        createdBy: "claude",
+      });
+
+      expect(task.createdBy).toBe("claude");
+    });
+
+    test("falls back to agent when createdBy not provided", async () => {
+      const task = await taskService.addTask({
+        title: "Test",
+        agent: "gemini",
+      });
+
+      expect(task.createdBy).toBe("gemini");
+    });
+
+    test("prefers createdBy over agent", async () => {
+      const task = await taskService.addTask({
+        title: "Test",
+        createdBy: "claude",
+        agent: "gemini",
+      });
+
+      expect(task.createdBy).toBe("claude");
+    });
+
+    test("defaults to user when neither provided", async () => {
+      const task = await taskService.addTask({ title: "Test" });
+
+      expect(task.createdBy).toBe("user");
+    });
+  });
+
   describe("getTask", () => {
     test("returns task by ID", async () => {
       const created = await taskService.addTask({ title: "Test" });

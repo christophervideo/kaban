@@ -89,7 +89,12 @@ export class TaskService {
 
   async addTask(input: AddTaskInput): Promise<Task> {
     const title = validateTitle(input.title);
-    const agent = input.agent ? validateAgentName(input.agent) : "user";
+    // Priority: createdBy > agent > "user"
+    const createdBy = input.createdBy
+      ? validateAgentName(input.createdBy)
+      : input.agent
+        ? validateAgentName(input.agent)
+        : "user";
     const columnId = input.columnId ? validateColumnId(input.columnId) : "todo";
 
     const column = await this.boardService.getColumn(columnId);
@@ -113,7 +118,7 @@ export class TaskService {
       description: input.description ?? null,
       columnId,
       position,
-      createdBy: agent,
+      createdBy,
       assignedTo: null,
       parentId: null,
       dependsOn: input.dependsOn ?? [],
