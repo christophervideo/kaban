@@ -7,6 +7,7 @@ import { Command } from "commander";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
 
 function hasBun(): boolean {
   try {
@@ -73,6 +74,7 @@ export const tuiCommand = new Command("tui")
     }
 
     // 5. Fallback: bunx
-    const child = spawn("bun", ["x", "@kaban-board/tui", ...args], { stdio: "inherit", cwd });
+    const version = pkg.version;
+    const child = spawn("bun", ["x", `@kaban-board/tui@${version}`, ...args], { stdio: "inherit", cwd });
     child.on("exit", (code) => process.exit(code ?? 0));
   });
