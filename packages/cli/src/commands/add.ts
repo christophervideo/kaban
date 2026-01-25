@@ -10,6 +10,7 @@ export const addCommand = new Command("add")
   .option("-a, --agent <agent>", "Agent creating the task")
   .option("-D, --description <text>", "Task description")
   .option("-d, --depends-on <ids>", "Comma-separated task IDs this depends on")
+  .option("-f, --force", "Force creation even if similar tasks exist")
   .option("-j, --json", "Output as JSON")
   .action(async (title, options) => {
     const json = options.json;
@@ -21,13 +22,28 @@ export const addCommand = new Command("add")
         ? options.dependsOn.split(",").map((s: string) => s.trim())
         : [];
 
-      const task = await taskService.addTask({
-        title,
-        description: options.description,
-        columnId,
-        agent,
-        dependsOn,
-      });
+      const result = await taskService.addTaskChecked(
+        {
+          title,
+          description: options.description,
+          columnId,
+          agent,
+          dependsOn,
+        },
+        { force: options.force },
+      );
+
+      if (result.rejected) {
+        if (json) {
+          outputError(409, result.rejectionReason ?? "Similar task exists");
+        } else {
+          console.error(`Error: ${result.rejectionReason}`);
+          console.error("Use --force to create anyway.");
+        }
+        process.exit(1);
+      }
+
+      const task = result.task!;
 
       if (json) {
         outputSuccess(task);
@@ -37,6 +53,10 @@ export const addCommand = new Command("add")
       console.log(`Created task [${task.id.slice(0, 8)}] "${task.title}"`);
       console.log(`  Column: ${task.columnId}`);
       console.log(`  Agent: ${task.createdBy}`);
+
+      if (result.similarTasks.length > 0) {
+        console.log(`  Note: Found ${result.similarTasks.length} similar task(s)`);
+      }
     } catch (error) {
       if (error instanceof KabanError) {
         if (json) outputError(error.code, error.message);

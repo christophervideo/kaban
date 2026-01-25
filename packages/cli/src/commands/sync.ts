@@ -12,7 +12,7 @@ export const syncCommand = new Command("sync")
 
     let input: string;
     try {
-      const chunks: Buffer[] = [];
+      const chunks: Uint8Array[] = [];
       for await (const chunk of process.stdin) {
         chunks.push(chunk);
       }
