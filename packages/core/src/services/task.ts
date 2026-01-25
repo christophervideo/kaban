@@ -59,7 +59,21 @@ export interface ValidateDependenciesResult {
   blockedBy: string[];
 }
 
+export interface AddTaskCheckedResult {
+  task: Task | null;
+  created: boolean;
+  similarTasks: Array<{ task: Task; similarity: number }>;
+  rejected: boolean;
+  rejectionReason?: string;
+}
+
 export class TaskService {
+  private duplicateConfig = {
+    enabled: true,
+    threshold: 0.5,
+    warnThreshold: 0.5,
+  };
+
   constructor(
     private db: DB,
     private boardService: BoardService,
@@ -601,5 +615,38 @@ export class TaskService {
       .filter((result) => result.similarity >= threshold)
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5);
+  }
+
+  async addTaskChecked(
+    input: AddTaskInput,
+    options?: { force?: boolean },
+  ): Promise<AddTaskCheckedResult> {
+    const similarTasks = await this.findSimilarTasks(input.title, this.duplicateConfig.threshold);
+    const highSimilarity = similarTasks.filter(
+      (s) => s.similarity >= this.duplicateConfig.warnThreshold,
+    );
+
+    if (highSimilarity.length > 0 && !options?.force) {
+      const similar = highSimilarity
+        .map((s) => `"${s.task.title}" (${Math.round(s.similarity * 100)}%)`)
+        .join(", ");
+
+      return {
+        task: null,
+        created: false,
+        similarTasks,
+        rejected: true,
+        rejectionReason: `Found ${highSimilarity.length} very similar task(s): ${similar}. Use force=true to create anyway.`,
+      };
+    }
+
+    const task = await this.addTask(input);
+
+    return {
+      task,
+      created: true,
+      similarTasks,
+      rejected: false,
+    };
   }
 }

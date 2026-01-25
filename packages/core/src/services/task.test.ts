@@ -758,4 +758,46 @@ describe("TaskService", () => {
       }
     });
   });
+
+  describe("addTaskChecked", () => {
+    test("creates task when no similar tasks", async () => {
+      const result = await taskService.addTaskChecked({ title: "Unique task" });
+
+      expect(result.created).toBe(true);
+      expect(result.task).not.toBeNull();
+      expect(result.rejected).toBe(false);
+    });
+
+    test("rejects when very similar task exists", async () => {
+      await taskService.addTask({ title: "Fix login bug" });
+
+      const result = await taskService.addTaskChecked({ title: "Fix login issue" });
+
+      expect(result.created).toBe(false);
+      expect(result.task).toBeNull();
+      expect(result.rejected).toBe(true);
+      expect(result.rejectionReason).toContain("similar");
+    });
+
+    test("creates with force despite similar task", async () => {
+      await taskService.addTask({ title: "Fix login bug" });
+
+      const result = await taskService.addTaskChecked(
+        { title: "Fix login issue" },
+        { force: true },
+      );
+
+      expect(result.created).toBe(true);
+      expect(result.task).not.toBeNull();
+      expect(result.similarTasks.length).toBeGreaterThan(0);
+    });
+
+    test("returns similar tasks even when created", async () => {
+      await taskService.addTask({ title: "Fix bug" });
+
+      const result = await taskService.addTaskChecked({ title: "Fix another bug" });
+
+      expect(result.similarTasks).toBeDefined();
+    });
+  });
 });
