@@ -45,17 +45,19 @@ export const moveCommand = new Command("move")
         process.exit(4);
       }
 
-      let assignAgent: string | null = null;
-      if (options.assign !== undefined) {
-        assignAgent = options.assign === true ? getAgent() : options.assign;
-        await taskService.updateTask(task.id, { assignedTo: assignAgent });
-      }
-
+      // Move first, then assign (atomic: if move fails, no side effects)
       const moved = await taskService.moveTask(task.id, targetColumn, {
         force: options.force,
       });
 
-      const finalTask = assignAgent ? await taskService.getTask(task.id) : moved;
+      // Assign after successful move
+      let assignAgent: string | null = null;
+      if (options.assign !== undefined) {
+        assignAgent = options.assign === true ? getAgent() : options.assign;
+        await taskService.updateTask(moved.id, { assignedTo: assignAgent });
+      }
+
+      const finalTask = assignAgent ? await taskService.getTask(moved.id) : moved;
 
       if (json) {
         outputSuccess(finalTask);
