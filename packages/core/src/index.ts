@@ -34,4 +34,5 @@ export {
 export { BoardService } from "./services/board.js";
 export { type MoveTaskOptions, TaskService } from "./services/task.js";
 export * from "./types.js";
+export { jaccardSimilarity } from "./utils/similarity.js";
 export * from "./validation.js";
