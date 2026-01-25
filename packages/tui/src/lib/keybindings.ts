@@ -6,12 +6,14 @@ import {
   focusNextEditField,
   scrollViewTaskDescription,
   showAddTaskModal,
+  showArchiveTaskModal,
   showAssignTaskModal,
   showDeleteTaskModal,
   showEditTaskModal,
   showHelpModal,
   showMoveTaskModal,
   showQuitModal,
+  showRestoreTaskModal,
   showViewTaskModal,
 } from "../components/modals/index.js";
 import type { AppState, ModalType } from "./types.js";
@@ -58,6 +60,23 @@ const openDeleteModal: KeyHandler = async (state) => {
   }
 };
 
+const openArchiveModal: KeyHandler = async (state) => {
+  const taskId = getSelectedTaskId(state);
+  if (taskId) {
+    if (state.archiveViewMode) {
+      await showRestoreTaskModal(state, () => refreshBoard(state));
+    } else {
+      await showArchiveTaskModal(state, () => refreshBoard(state));
+    }
+  }
+};
+
+const toggleArchiveView: KeyHandler = async (state) => {
+  state.archiveViewMode = !state.archiveViewMode;
+  state.currentColumnIndex = 0;
+  await refreshBoard(state);
+};
+
 const openEditModal: KeyHandler = async (state) => {
   const task = state.selectedTask;
   if (!task) return;
@@ -95,6 +114,10 @@ async function openViewModalForTask(state: AppState, taskIdOverride?: string): P
         },
         onEdit: async () => {
           await openEditModal(state);
+        },
+        onArchive: async () => {
+          closeModal(state);
+          await openArchiveModal(state);
         },
       },
       taskIdOverride,
@@ -157,10 +180,37 @@ const modalBindings: Record<ModalType, KeyBindings> = {
     h: navigateLeft,
     right: navigateRight,
     l: navigateRight,
-    a: (state) => showAddTaskModal(state, () => refreshBoard(state)),
-    m: openMoveModal,
-    u: openAssignModal,
-    d: openDeleteModal,
+    a: (state) => {
+      if (!state.archiveViewMode) {
+        return showAddTaskModal(state, () => refreshBoard(state));
+      }
+    },
+    m: (state) => {
+      if (!state.archiveViewMode) {
+        return openMoveModal(state);
+      }
+    },
+    u: (state) => {
+      if (!state.archiveViewMode) {
+        return openAssignModal(state);
+      }
+    },
+    d: (state) => {
+      if (!state.archiveViewMode) {
+        return openDeleteModal(state);
+      }
+    },
+    x: (state) => {
+      if (!state.archiveViewMode) {
+        return openArchiveModal(state);
+      }
+    },
+    r: (state) => {
+      if (state.archiveViewMode) {
+        return openArchiveModal(state);
+      }
+    },
+    tab: toggleArchiveView,
     return: openViewModal,
     "?": showHelpModal,
   },
@@ -190,31 +240,45 @@ const modalBindings: Record<ModalType, KeyBindings> = {
     n: closeModal,
     escape: closeModal,
   },
-  viewTask: {
+  archiveTask: {
+    y: confirmModal,
+    n: closeModal,
     escape: closeModal,
-    left: buttonSelectPrev,
-    right: buttonSelectNext,
-    tab: focusButtons,
-    return: buttonTrigger,
-    m: async (state) => {
-      closeModal(state);
-      await openMoveModal(state);
-    },
-    u: async (state) => {
-      closeModal(state);
-      await openAssignModal(state);
-    },
-    d: async (state) => {
-      closeModal(state);
-      await openDeleteModal(state);
-    },
-    e: openEditModal,
-    c: copyTaskId,
-    j: (state) => scrollViewTaskDescription(state, "down"),
-    k: (state) => scrollViewTaskDescription(state, "up"),
-    down: (state) => scrollViewTaskDescription(state, "down"),
-    up: (state) => scrollViewTaskDescription(state, "up"),
   },
+  restoreTask: {
+    y: confirmModal,
+    n: closeModal,
+    escape: closeModal,
+  },
+   viewTask: {
+     escape: closeModal,
+     left: buttonSelectPrev,
+     right: buttonSelectNext,
+     tab: focusButtons,
+     return: buttonTrigger,
+     m: async (state) => {
+       closeModal(state);
+       await openMoveModal(state);
+     },
+     u: async (state) => {
+       closeModal(state);
+       await openAssignModal(state);
+     },
+     d: async (state) => {
+       closeModal(state);
+       await openDeleteModal(state);
+     },
+     x: async (state) => {
+       closeModal(state);
+       await openArchiveModal(state);
+     },
+     e: openEditModal,
+     c: copyTaskId,
+     j: (state) => scrollViewTaskDescription(state, "down"),
+     k: (state) => scrollViewTaskDescription(state, "up"),
+     down: (state) => scrollViewTaskDescription(state, "down"),
+     up: (state) => scrollViewTaskDescription(state, "up"),
+   },
   editTask: {
     escape: cancelEditTask,
     tab: focusNextEditField,

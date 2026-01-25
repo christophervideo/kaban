@@ -5,6 +5,7 @@ import {
   InputRenderableEvents,
   TextRenderable,
 } from "@opentui/core";
+import type { EventEmitter } from "events";
 import { createButtonRow } from "../../lib/button-row.js";
 import { COLORS } from "../../lib/theme.js";
 
@@ -87,15 +88,17 @@ export async function showOnboarding(renderer: CliRenderer): Promise<string> {
 
     const spacer2 = new BoxRenderable(renderer, { id: "spacer2", width: "100%", height: 1 });
 
+    const keyEmitter = renderer.keyInput as unknown as EventEmitter;
+
     const doCreate = () => {
-      renderer.keyInput.off("keypress", keyHandler);
+      keyEmitter.off("keypress", keyHandler);
       const boardName = input.value.trim() || "Kaban Board";
       container.destroy();
       resolvePromise(boardName);
     };
 
     const doQuit = () => {
-      renderer.keyInput.off("keypress", keyHandler);
+      keyEmitter.off("keypress", keyHandler);
       renderer.destroy();
       process.exit(0);
     };
@@ -143,6 +146,6 @@ export async function showOnboarding(renderer: CliRenderer): Promise<string> {
       keyBindings[key.name]?.();
     };
 
-    renderer.keyInput.on("keypress", keyHandler);
+    keyEmitter.on("keypress", keyHandler);
   });
 }

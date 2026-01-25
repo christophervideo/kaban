@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { BoardService, createDb, TaskService } from "@kaban-board/core";
 import { createCliRenderer } from "@opentui/core";
+import type { EventEmitter } from "events";
 import { refreshBoard } from "./components/board.js";
 import { showOnboarding } from "./components/modals/index.js";
 import { handleKeypress } from "./lib/keybindings.js";
@@ -65,6 +66,7 @@ async function main() {
     editTaskState: null,
     viewTaskRuntime: null,
     editTaskRuntime: null,
+    archiveViewMode: false,
   };
 
   await refreshBoard(state);
@@ -96,7 +98,8 @@ async function main() {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  renderer.keyInput.on("keypress", (key: { name: string; shift: boolean }) => {
+  const keyEmitter = renderer.keyInput as unknown as EventEmitter;
+  keyEmitter.on("keypress", (key: { name: string; shift: boolean }) => {
     handleKeypress(state, key);
   });
 }

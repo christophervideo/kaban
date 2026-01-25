@@ -378,10 +378,16 @@ export async function showViewTaskModal(
     content: "[d] Delete",
     fg: COLORS.danger,
   });
+  const archiveAction = new TextRenderable(renderer, {
+    id: "view-action-archive",
+    content: "[x] Archive",
+    fg: COLORS.warning,
+  });
 
   actionsLeft.add(moveAction);
   actionsLeft.add(assignAction);
   actionsLeft.add(editAction);
+  actionsLeft.add(archiveAction);
   actionsLeft.add(deleteAction);
 
   const escAction = new TextRenderable(renderer, {

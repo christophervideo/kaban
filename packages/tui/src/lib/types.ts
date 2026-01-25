@@ -14,6 +14,8 @@ export type ModalType =
   | "moveTask"
   | "assignTask"
   | "deleteTask"
+  | "archiveTask"
+  | "restoreTask"
   | "viewTask"
   | "editTask"
   | "help"
@@ -35,6 +37,7 @@ export interface ViewTaskActions {
   onAssign: () => Promise<void>;
   onDelete: () => Promise<void>;
   onEdit: () => Promise<void>;
+  onArchive: () => Promise<void>;
 }
 
 export interface ViewTaskRuntime {
@@ -74,6 +77,7 @@ export interface AppState {
   editTaskState: EditTaskState | null;
   viewTaskRuntime: ViewTaskRuntime | null;
   editTaskRuntime: EditTaskRuntime | null;
+  archiveViewMode: boolean;
 }
 
 export function getSelectedTaskId(state: AppState): string | null {

@@ -12,7 +12,9 @@ export async function refreshBoard(state: AppState): Promise<void> {
 
   state.columns = await boardService.getColumns();
   state.taskSelects = new Map();
-  const tasks = await taskService.listTasks();
+  const tasks = state.archiveViewMode
+    ? (await taskService.listTasks({ includeArchived: true })).filter((t) => t.archived)
+    : await taskService.listTasks();
 
   const mainContainer = new BoxRenderable(renderer, {
     id: "main",
@@ -34,9 +36,10 @@ export async function refreshBoard(state: AppState): Promise<void> {
     alignItems: "center",
   });
 
+  const modeIndicator = state.archiveViewMode ? " [ARCHIVE]" : "";
   const headerText = new TextRenderable(renderer, {
     id: "header-text",
-    content: t`${fg(COLORS.warning)(LOGO)} ${fg(COLORS.accent)(state.boardName)}`,
+    content: t`${fg(COLORS.warning)(LOGO)} ${fg(COLORS.accent)(state.boardName)}${fg(COLORS.textMuted)(modeIndicator)}`,
   });
   header.add(headerText);
   mainContainer.add(header);
@@ -141,9 +144,15 @@ export async function refreshBoard(state: AppState): Promise<void> {
     alignItems: "center",
   });
 
+  const hasTasksInView = tasks.length > 0;
+  const footerContent = state.archiveViewMode
+    ? hasTasksInView
+      ? "[r]estore [Tab]Back  [?] [q]"
+      : "[Tab]Back  [?] [q]"
+    : "[a]dd [m]ove [u] [d]el [x]arch [Tab]Arch  [?] [q]";
   const footerText = new TextRenderable(renderer, {
     id: "footer-text",
-    content: "[a]dd [m]ove [u]ser [d]el  [?]Help [q]uit",
+    content: footerContent,
     fg: COLORS.textMuted,
   });
   footer.add(footerText);
