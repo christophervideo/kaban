@@ -1,7 +1,7 @@
 /**
  * Tokenizes a string into a set of lowercase alphanumeric words.
  */
-function tokenize(text: string): Set<string> {
+export function tokenize(text: string): Set<string> {
   const words = text
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")

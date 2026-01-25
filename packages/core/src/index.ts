@@ -32,7 +32,19 @@ export {
   UpdateTaskInputSchema,
 } from "./schemas.js";
 export { BoardService } from "./services/board.js";
-export { type AddTaskCheckedResult, type MoveTaskOptions, TaskService } from "./services/task.js";
+export {
+  type AddTaskCheckedResult,
+  type ArchiveTasksCriteria,
+  type ArchiveTasksResult,
+  type MoveTaskOptions,
+  type PurgeArchiveCriteria,
+  type PurgeArchiveResult,
+  type ResetBoardResult,
+  type SearchArchiveOptions,
+  type SearchArchiveResult,
+  TaskService,
+  type ValidateDependenciesResult,
+} from "./services/task.js";
 export * from "./types.js";
-export { jaccardSimilarity } from "./utils/similarity.js";
+export { jaccardSimilarity, tokenize } from "./utils/similarity.js";
 export * from "./validation.js";
