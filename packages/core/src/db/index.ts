@@ -1,15 +1,11 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { ExitCode, KabanError } from "../types.js";
-import * as schema from "./schema.js";
+import { fileUrlToPath } from "./utils.js";
 
 export * from "./schema.js";
 export { runMigrations } from "./migrator.js";
 
 type DrizzleDb = ReturnType<typeof import("drizzle-orm/libsql").drizzle>;
 
-// Helper to avoid "unknown" casting in consumers
 type BunDatabase = InstanceType<typeof import("bun:sqlite").Database>;
 type LibsqlClient = import("@libsql/client").Client;
 
@@ -19,14 +15,12 @@ type LibsqlClient = import("@libsql/client").Client;
  * Note: Uses libsql drizzle type for compatibility; bun:sqlite is API-compatible at runtime.
  */
 export type DB = Omit<DrizzleDb, "$client"> & {
-  /** Raw database client. Type varies by backend. */
   $client: BunDatabase | LibsqlClient;
   /**
    * Execute raw SQL statements.
    * @internal For schema initialization only. Does not sanitize input.
    */
   $runRaw: (sql: string) => Promise<void>;
-  /** Close the database connection and release resources. */
   $close: () => Promise<void>;
 };
 
@@ -36,135 +30,10 @@ export interface DbConfig {
 }
 
 export interface CreateDbOptions {
-  /** Run migrations on connect. Default: true */
   migrate?: boolean;
 }
 
 const isBun = typeof globalThis.Bun !== "undefined" && typeof globalThis.Bun.version === "string";
-
-function fileUrlToPath(urlOrPath: string): string {
-  if (!urlOrPath.startsWith("file:")) return urlOrPath;
-  if (urlOrPath.startsWith("file:///") || urlOrPath.startsWith("file://localhost/")) {
-    return fileURLToPath(urlOrPath);
-  }
-  return urlOrPath.replace(/^file:/, "");
-}
-
-function ensureDbDir(filePath: string) {
-  if (filePath === ":memory:" || filePath.trim() === "") return;
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-}
-
-async function createBunDb(filePath: string): Promise<DB> {
-  let sqlite: InstanceType<typeof import("bun:sqlite").Database> | undefined;
-  try {
-    const { Database } = await import("bun:sqlite");
-    const { drizzle } = await import("drizzle-orm/bun-sqlite");
-
-    ensureDbDir(filePath);
-    sqlite = new Database(filePath);
-    const db = drizzle({ client: sqlite, schema });
-
-    let closed = false;
-    const sqliteRef = sqlite;
-
-    return Object.assign(db, {
-      $client: sqliteRef,
-      $runRaw: async (sql: string) => {
-        try {
-          if (typeof sqliteRef.exec === "function") {
-            sqliteRef.exec(sql);
-            return;
-          }
-          const statements = sql.split(";").filter((s) => s.trim());
-          for (const stmt of statements) {
-            sqliteRef.run(stmt);
-          }
-        } catch (error) {
-          throw new KabanError(
-            `SQL execution failed: ${error instanceof Error ? error.message : String(error)}`,
-            ExitCode.GENERAL_ERROR,
-          );
-        }
-      },
-      $close: async () => {
-        if (closed) return;
-        closed = true;
-        try {
-          sqliteRef.close();
-        } catch {
-          // best-effort close
-        }
-      },
-    }) as unknown as DB;
-  } catch (error) {
-    try {
-      sqlite?.close?.();
-    } catch {
-      // ignore cleanup failures
-    }
-    if (error instanceof KabanError) throw error;
-    throw new KabanError(
-      `Failed to create Bun database: ${error instanceof Error ? error.message : String(error)}`,
-      ExitCode.GENERAL_ERROR,
-    );
-  }
-}
-
-async function createLibsqlDb(config: DbConfig): Promise<DB> {
-  let client: ReturnType<typeof import("@libsql/client").createClient> | undefined;
-  try {
-    const { createClient } = await import("@libsql/client");
-    const { drizzle } = await import("drizzle-orm/libsql");
-
-    if (config.url.startsWith("file:")) {
-      ensureDbDir(fileUrlToPath(config.url));
-    }
-
-    client = createClient(config);
-    const db = drizzle(client, { schema });
-
-    let closed = false;
-    const clientRef = client;
-
-    return Object.assign(db, {
-      $client: clientRef,
-      $runRaw: async (sql: string) => {
-        try {
-          await clientRef.executeMultiple(sql);
-        } catch (error) {
-          throw new KabanError(
-            `SQL execution failed: ${error instanceof Error ? error.message : String(error)}`,
-            ExitCode.GENERAL_ERROR,
-          );
-        }
-      },
-      $close: async () => {
-        if (closed) return;
-        closed = true;
-        try {
-          clientRef.close();
-        } catch {
-          // best-effort close
-        }
-      },
-    }) as unknown as DB;
-  } catch (error) {
-    try {
-      client?.close?.();
-    } catch {
-      // ignore cleanup failures
-    }
-    if (error instanceof KabanError) throw error;
-    throw new KabanError(
-      `Failed to create libsql database: ${error instanceof Error ? error.message : String(error)}`,
-      ExitCode.GENERAL_ERROR,
-    );
-  }
-}
 
 export async function createDb(
   config: DbConfig | string,
@@ -180,17 +49,23 @@ export async function createDb(
 
     if (typeof config === "string") {
       if (forceLibsql) {
+        const { createLibsqlDb } = await import("./libsql-adapter.js");
         db = await createLibsqlDb({ url: `file:${config}` });
       } else if (preferBun) {
+        const { createBunDb } = await import("./bun-adapter.js");
         db = await createBunDb(config);
       } else {
+        const { createLibsqlDb } = await import("./libsql-adapter.js");
         db = await createLibsqlDb({ url: `file:${config}` });
       }
     } else if (forceLibsql) {
+      const { createLibsqlDb } = await import("./libsql-adapter.js");
       db = await createLibsqlDb(config);
     } else if (preferBun && config.url.startsWith("file:")) {
+      const { createBunDb } = await import("./bun-adapter.js");
       db = await createBunDb(fileUrlToPath(config.url));
     } else {
+      const { createLibsqlDb } = await import("./libsql-adapter.js");
       db = await createLibsqlDb(config);
     }
 
