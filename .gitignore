@@ -25,3 +25,6 @@ coverage
 
 # Plans (local working docs)
 docs/plans/
+
+# Serena local state
+.serena
