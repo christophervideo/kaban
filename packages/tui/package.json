@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --packages external && chmod +x ./dist/index.js",
-    "build:bin": "bun build --compile --minify ./src/index.ts --outfile ./dist/kaban-tui --external @libsql/client",
+    "build:bin": "bun build --compile --minify ./src/index.ts --outfile ./dist/kaban-tui --external @libsql/client --define \"process.env.KABAN_NO_LIBSQL='true'\"",
     "dev": "bun run ./src/index.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",

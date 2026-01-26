@@ -36,53 +36,81 @@ export interface CreateDbOptions {
 const isBun = typeof globalThis.Bun !== "undefined" && typeof globalThis.Bun.version === "string";
 
 export async function createDb(
-  config: DbConfig | string,
-  options: CreateDbOptions = {},
+   config: DbConfig | string,
+   options: CreateDbOptions = {},
 ): Promise<DB> {
-  const { migrate = true } = options;
+   const { migrate = true } = options;
 
-  try {
-    let db: DB;
-    const driver = process.env.KABAN_DB_DRIVER;
-    const preferBun = isBun && driver !== "libsql";
-    const forceLibsql = driver === "libsql";
+   try {
+     let db: DB;
+     const driver = process.env.KABAN_DB_DRIVER;
+     const noLibsql = process.env.KABAN_NO_LIBSQL === "true";
+     const preferBun = isBun && driver !== "libsql";
+     const forceLibsql = driver === "libsql";
 
-    if (typeof config === "string") {
-      if (forceLibsql) {
-        const { createLibsqlDb } = await import("./libsql-adapter.js");
-        db = await createLibsqlDb({ url: `file:${config}` });
-      } else if (preferBun) {
-        const { createBunDb } = await import("./bun-adapter.js");
-        db = await createBunDb(config);
-      } else {
-        const { createLibsqlDb } = await import("./libsql-adapter.js");
-        db = await createLibsqlDb({ url: `file:${config}` });
-      }
-    } else if (forceLibsql) {
-      const { createLibsqlDb } = await import("./libsql-adapter.js");
-      db = await createLibsqlDb(config);
-    } else if (preferBun && config.url.startsWith("file:")) {
-      const { createBunDb } = await import("./bun-adapter.js");
-      db = await createBunDb(fileUrlToPath(config.url));
-    } else {
-      const { createLibsqlDb } = await import("./libsql-adapter.js");
-      db = await createLibsqlDb(config);
-    }
+     if (noLibsql && forceLibsql) {
+       throw new KabanError(
+         "LibSQL is disabled (KABAN_NO_LIBSQL=true) but was explicitly requested",
+         ExitCode.GENERAL_ERROR,
+       );
+     }
 
-    if (migrate) {
-      const { runMigrations } = await import("./migrator.js");
-      await runMigrations(db);
-    }
+     if (typeof config === "string") {
+       if (forceLibsql) {
+         if (noLibsql) {
+           throw new KabanError(
+             "LibSQL is disabled (KABAN_NO_LIBSQL=true) but was explicitly requested",
+             ExitCode.GENERAL_ERROR,
+           );
+         } else {
+           const { createLibsqlDb } = await import("./libsql-adapter.js");
+           db = await createLibsqlDb({ url: `file:${config}` });
+         }
+       } else if (preferBun) {
+         const { createBunDb } = await import("./bun-adapter.js");
+         db = await createBunDb(config);
+       } else if (noLibsql) {
+         const { createBunDb } = await import("./bun-adapter.js");
+         db = await createBunDb(config);
+       } else {
+         const { createLibsqlDb } = await import("./libsql-adapter.js");
+         db = await createLibsqlDb({ url: `file:${config}` });
+       }
+     } else if (forceLibsql) {
+       if (noLibsql) {
+         throw new KabanError(
+           "LibSQL is disabled (KABAN_NO_LIBSQL=true) but was explicitly requested",
+           ExitCode.GENERAL_ERROR,
+         );
+       } else {
+         const { createLibsqlDb } = await import("./libsql-adapter.js");
+         db = await createLibsqlDb(config);
+       }
+     } else if (preferBun && config.url.startsWith("file:")) {
+       const { createBunDb } = await import("./bun-adapter.js");
+       db = await createBunDb(fileUrlToPath(config.url));
+     } else if (noLibsql) {
+       const { createBunDb } = await import("./bun-adapter.js");
+       db = await createBunDb(fileUrlToPath(config.url));
+     } else {
+       const { createLibsqlDb } = await import("./libsql-adapter.js");
+       db = await createLibsqlDb(config);
+     }
 
-    return db;
-  } catch (error) {
-    if (error instanceof KabanError) throw error;
-    throw new KabanError(
-      `Failed to create database: ${error instanceof Error ? error.message : String(error)}`,
-      ExitCode.GENERAL_ERROR,
-    );
-  }
-}
+     if (migrate) {
+       const { runMigrations } = await import("./migrator.js");
+       await runMigrations(db);
+     }
+
+     return db;
+   } catch (error) {
+     if (error instanceof KabanError) throw error;
+     throw new KabanError(
+       `Failed to create database: ${error instanceof Error ? error.message : String(error)}`,
+       ExitCode.GENERAL_ERROR,
+     );
+   }
+ }
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
