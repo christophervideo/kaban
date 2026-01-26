@@ -30,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/beshkenadze/kaban.git",
+    "url": "https://github.com/kaban-board/kaban.git",
     "directory": "packages/tui"
   },
   "homepage": "https://beshkenadze.github.io/kaban",
